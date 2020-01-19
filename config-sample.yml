@@ -1,0 +1,8 @@
+scraper:
+  tokens:
+    - <token here>
+  folders:
+    - <folder here>
+  rps: 1
+logging: "*=info"
+
