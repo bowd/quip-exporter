@@ -66,6 +66,10 @@ func New(token string, tokenConcurrency, rps int, batchWait time.Duration, maxIt
 			mutex: &sync.Mutex{},
 			batch: nil,
 		},
+		user: batchWithLock{
+			mutex: &sync.Mutex{},
+			batch: nil,
+		},
 	}
 
 	if err := qc.testToken(); err != nil {
@@ -113,6 +117,9 @@ func (qc *QuipClient) GetThread(threadID string) (*types.QuipThread, error) {
 
 func (qc *QuipClient) GetCurrentUser() (*types.QuipUser, error) {
 	data, err := qc.getCurrentUser()
+	if err != nil {
+		return nil, err
+	}
 	var user types.QuipUser
 	err = json.Unmarshal(data, &user)
 	if err != nil {
@@ -131,4 +138,40 @@ func (qc *QuipClient) GetUser(userID string) (*types.QuipUser, error) {
 	}
 
 	return &user, nil
+}
+
+func (qc *QuipClient) ExportThreadSlides(threadID string) ([]byte, error) {
+	return qc.exportThread(threadID, "pdf")
+}
+
+func (qc *QuipClient) ExportThreadDocument(threadID string) ([]byte, error) {
+	return qc.exportThread(threadID, "docx")
+}
+
+func (qc *QuipClient) ExportThreadSpreadsheet(threadID string) ([]byte, error) {
+	return qc.exportThread(threadID, "xlsx")
+}
+
+func (qc *QuipClient) GetThreadComments(threadID string) ([]*types.QuipMessage, error) {
+	allComments := make([]*types.QuipMessage, 0, 10)
+	var cursor *uint64
+	for {
+		data, err := qc.getThreadComments(threadID, cursor)
+		if err != nil {
+			return nil, err
+		}
+		var comments []*types.QuipMessage
+		err = json.Unmarshal(data, &comments)
+		if err != nil {
+			return nil, err
+		}
+		if len(comments) == 0 {
+			break
+		}
+		allComments = append(allComments, comments...)
+		cursor = &comments[len(comments)-1].CreatedUsec
+	}
+
+	qc.logger.Debug("Got comments: ", allComments)
+	return allComments, nil
 }

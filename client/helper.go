@@ -16,11 +16,15 @@ func (qc *QuipClient) testToken() error {
 }
 
 const (
-	BASE_URL     = "https://platform.quip.com/1"
-	FOLDERS_MASK = "/folders/?ids=%s"
-	THREADS_MASK = "/threads/?ids=%s"
-	USERS_MASK   = "/users/?ids=%s"
-	FOLDER_MASK  = "/folders/%s"
+	BASE_URL                    = "https://platform.quip.com/1"
+	FOLDERS_MASK                = "/folders/?ids=%s"
+	THREADS_MASK                = "/threads/?ids=%s"
+	USERS_MASK                  = "/users/?ids=%s"
+	FOLDER_MASK                 = "/folders/%s"
+	EXPORT_MASK                 = "/threads/%s/export/%s"
+	CURRENT_USER_PATH           = "/users/current"
+	THREAD_COMMENTS_MASK        = "/messages/%s?count=50"
+	THREAD_COMMENTS_CURSOR_MASK = "/messages/%s?count=50&max_created_usec=%d"
 )
 
 func batchURL(pathMask string, ids []string) string {
@@ -30,7 +34,19 @@ func batchURL(pathMask string, ids []string) string {
 }
 
 func currentUserURL() string {
-	return BASE_URL + "/users/current"
+	return BASE_URL + CURRENT_USER_PATH
+}
+
+func exportThreadURL(threadID string, exportType string) string {
+	return BASE_URL + fmt.Sprintf(EXPORT_MASK, threadID, exportType)
+}
+
+func threadCommentsURL(threadID string, cursor *uint64) string {
+	if cursor == nil {
+		return BASE_URL + fmt.Sprintf(THREAD_COMMENTS_MASK, threadID)
+	} else {
+		return BASE_URL + fmt.Sprintf(THREAD_COMMENTS_CURSOR_MASK, threadID, *cursor)
+	}
 }
 
 func (qc *QuipClient) getWithToken(url string, token Token) *gorequest.SuperAgent {

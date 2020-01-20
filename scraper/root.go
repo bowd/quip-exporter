@@ -2,10 +2,9 @@ package scraper
 
 import (
 	"context"
+	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
-	"github.com/bowd/quip-exporter/utils"
 	"golang.org/x/sync/errgroup"
-	"path"
 )
 
 type RootNode struct {
@@ -24,6 +23,10 @@ func NewRootNode(ctx context.Context) INode {
 	}
 }
 
+func (node *RootNode) ID() string {
+	return "root"
+}
+
 func (node *RootNode) Children() []INode {
 	children := make([]INode, 0, 0)
 	for _, folderID := range node.currentUser.Folders() {
@@ -33,21 +36,23 @@ func (node *RootNode) Children() []INode {
 	return children
 }
 
-func (node *RootNode) Load(scraper *Scraper) error {
-	currentUser, err := scraper.client.GetCurrentUser()
-	if err != nil {
+func (node *RootNode) Process(scraper *Scraper) error {
+	var currentUser *types.QuipUser
+	var err error
+	currentUser, err = scraper.repo.GetCurrentUser()
+	if err != nil && repositories.IsNotFoundError(err) {
+		currentUser, err = scraper.client.GetCurrentUser()
+		if err != nil {
+			return err
+		}
+		if err := scraper.repo.SaveCurrentUser(currentUser); err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
+	} else {
+		scraper.logger.Debugf("Loaded current user from repository")
 	}
 	node.currentUser = currentUser
-	return node.saveData(scraper)
-}
-
-func (node *RootNode) saveData(scraper *Scraper) error {
-	if node.ctx.Err() != nil {
-		return nil
-	}
-	if err := utils.SaveJSONToFile(path.Join(DATA_FOLDER, "root.json"), node.currentUser); err != nil {
-		return err
-	}
 	return nil
 }

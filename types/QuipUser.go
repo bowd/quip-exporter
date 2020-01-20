@@ -1,9 +1,9 @@
 package types
 
 type QuipUser struct {
-	ID                string
-	Name              string
-	Affinity          float64
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Affinity          float64  `json:"affinity"`
 	ProfilePictureURL *string  `json:"profile_picture_url"`
 	ChatThreadID      *string  `json:"chat_thread_id"`
 	DesktopFolderID   *string  `json:"desktop_folder_id"`
@@ -12,8 +12,8 @@ type QuipUser struct {
 	PrivateFolderID   *string  `json:"private_folder_id"`
 	GroupFolderIDs    []string `json:"group_folder_ids"`
 	SharedFolderIDs   []string `json:"shared_folder_ids"`
-	Disabled          *string
-	CreatedUsec       *uint `json:"created_usec"`
+	Disabled          *string  `json:"disabled"`
+	CreatedUsec       *uint64  `json:"created_usec"`
 }
 
 func (qu QuipUser) Folders() []string {

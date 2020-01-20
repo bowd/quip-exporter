@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/boltdb/bolt v1.3.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/evnix/boltdbweb v0.0.0-20191029203843-5b16e6623bd9 // indirect

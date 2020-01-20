@@ -3,8 +3,8 @@ package scraper
 import (
 	"context"
 	"fmt"
+	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
-	"github.com/bowd/quip-exporter/utils"
 	"golang.org/x/sync/errgroup"
 	"path"
 )
@@ -26,47 +26,51 @@ func NewFolderNode(ctx context.Context, path, id string) INode {
 	}
 }
 
+func (node *FolderNode) ID() string {
+	return fmt.Sprintf("folder:%s [%s]", node.id, node.path)
+}
+
 func (node *FolderNode) Children() []INode {
 	if node.folder == nil {
 		return []INode{}
 	}
 
 	children := make([]INode, 0, 0)
-	nodePath := path.Join(node.path, node.folder.Folder.Title)
+	nodePath := path.Join(node.path, node.folder.PathSegment())
 	for _, child := range node.folder.Children {
 		if child.IsThread() {
-			children = append(children, NewThreadNode(node.ctx, nodePath, *child.ThreadID))
+			childNode := NewThreadNode(node.ctx, nodePath, *child.ThreadID)
+			children = append(children, childNode)
 		} else if child.IsFolder() {
-			children = append(children, NewFolderNode(node.ctx, nodePath, *child.FolderID))
+			childNode := NewFolderNode(node.ctx, nodePath, *child.FolderID)
+			children = append(children, childNode)
 		}
 	}
 	return children
 }
 
-func (node *FolderNode) Load(scraper *Scraper) error {
-	scraper.logger.Debugf("Handling folder:%s [%s]", node.id, node.path)
+func (node *FolderNode) Process(scraper *Scraper) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
+	var folder *types.QuipFolder
+	var err error
 
-	folder, err := scraper.client.GetFolder(node.id)
-	if err != nil {
-		return fmt.Errorf("could not get folder: %s: %s", node.id, err)
+	folder, err = scraper.repo.GetFolder(node.id)
+	if err != nil && repositories.IsNotFoundError(err) {
+		folder, err = scraper.client.GetFolder(node.id)
+		if err != nil {
+			return err
+		}
+		if err := scraper.repo.SaveFolder(folder); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else {
+		scraper.logger.Debugf("Loaded from repo folder:%s [%s]", node.id, node.path)
 	}
+
 	node.folder = folder
-
-	if err := node.saveData(scraper); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (node *FolderNode) saveData(scraper *Scraper) error {
-	if node.ctx.Err() != nil {
-		return nil
-	}
-	if err := utils.SaveJSONToFile(path.Join(DATA_FOLDER, "folders", node.id+".json"), node.folder); err != nil {
-		return err
-	}
 	return nil
 }

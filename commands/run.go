@@ -2,15 +2,14 @@ package commands
 
 import (
 	"context"
+	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/scraper"
 	"github.com/bowd/quip-exporter/utils"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -34,10 +33,9 @@ var runCmd = &cobra.Command{
 		signal.Notify(stopChan, syscall.SIGINT)
 		signal.Notify(stopChan, syscall.SIGTERM)
 		ctx, cancel := context.WithCancel(context.Background())
-		db, err := bolt.Open(viper.GetString("scraper.dbpath"), 0600, &bolt.Options{Timeout: 1 * time.Second})
-		if err != nil {
-			logger.Errorf("Could not open database: %s", err)
-		}
+		repo := repositories.NewFileRepository(
+			viper.GetString("repo.basePath"),
+		)
 		quipClient, err := client.New(
 			viper.GetString("scraper.token"),
 			viper.GetInt("scraper.tokenConcurrency"),
@@ -52,17 +50,14 @@ var runCmd = &cobra.Command{
 
 		scraper := scraper.New(
 			quipClient,
-			db,
+			repo,
 			viper.GetStringSlice("scraper.folders"),
 		)
 
 		go scraper.Run(ctx, doneChan)
 
 		cleanup := func() {
-			err = db.Close()
-			if err != nil {
-				logger.Warnf("Could not close database: %s", err)
-			}
+			// Cleanup here
 		}
 
 		select {

@@ -39,3 +39,14 @@ func SaveJSONToFile(filename string, object interface{}) error {
 	}
 	return SaveBytesToFile(filename, data)
 }
+
+func FileExists(filename string) (bool, error) {
+	if _, err := os.Stat(filename); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return true, nil
+}

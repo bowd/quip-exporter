@@ -38,6 +38,11 @@ func (qc *QuipClient) getThunk(b *batchWithLock, batchType BatchType, id string)
 			err = bt.error[id]
 		}
 
+		if (data == nil || len(data) == 0) && err == nil {
+			qc.logger.Warnln("Response is empty and there's no error:")
+			qc.logger.Warnln(bt.batchType, bt.ids)
+		}
+
 		return data, err
 	}
 }

@@ -2,10 +2,10 @@ package scraper
 
 import (
 	"context"
+	"fmt"
+	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
-	"github.com/bowd/quip-exporter/utils"
 	"golang.org/x/sync/errgroup"
-	"path"
 )
 
 type ThreadNode struct {
@@ -25,62 +25,59 @@ func NewThreadNode(ctx context.Context, path, id string) INode {
 	}
 }
 
+func (node *ThreadNode) ID() string {
+	return fmt.Sprintf("thread:%s [%s]", node.id, node.path)
+}
+
 func (node *ThreadNode) Children() []INode {
+	if node.thread == nil {
+		return []INode{}
+	}
 	children := make([]INode, 0, 0)
+	children = append(
+		children,
+		NewThreadHTMLNode(node),
+		NewThreadCommentsNode(node),
+		NewUserNode(node.ctx, node.thread.Thread.AuthorID),
+	)
+
+	if node.thread.IsSlides() {
+		children = append(children, NewThreadSlidesNode(node))
+	}
+	if node.thread.IsDocument() {
+		children = append(children, NewThreadDocumentNode(node))
+	}
+	if node.thread.IsSpreadsheet() {
+		children = append(children, NewThreadSpreadsheetNode(node))
+	}
+	if node.thread.IsChannel() {
+		fmt.Println("!!!!!! Found channel thread: ", node.thread.Thread.ID)
+	}
 	return children
 }
 
-func (node *ThreadNode) Load(scraper *Scraper) error {
+func (node *ThreadNode) Process(scraper *Scraper) error {
+	if node.ctx.Err() != nil {
+		return nil
+	}
+
+	var thread *types.QuipThread
 	var err error
-	scraper.logger.Debugf("Handling thread:%s [%s]", node.id, node.path)
-	if node.ctx.Err() != nil {
-		return nil
-	}
 
-	thread, err := scraper.client.GetThread(node.id)
+	thread, err = scraper.repo.GetThread(node.id)
+	if err != nil && repositories.IsNotFoundError(err) {
+		thread, err = scraper.client.GetThread(node.id)
+		if err != nil {
+			return err
+		}
+		if err := scraper.repo.SaveThread(thread); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else {
+		scraper.logger.Debugf("Loaded from repo thread:%s [%s]", node.id, node.path)
+	}
 	node.thread = thread
-	if err != nil {
-		return err
-	}
-	err = node.saveHTML(scraper)
-	if err != nil {
-		return err
-	}
-	err = node.saveData(scraper)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (node *ThreadNode) saveHTML(scraper *Scraper) error {
-	if node.ctx.Err() != nil {
-		return nil
-	}
-	err := utils.SaveBytesToFile(
-		path.Join(FLAT_HTML_FOLDER, "threads", node.id+".html"),
-		[]byte(node.thread.HTML),
-	)
-	if err != nil {
-		return err
-	}
-	err = utils.SaveBytesToFile(
-		path.Join(HTML_FOLDER+node.path, node.thread.Filename()),
-		[]byte(node.thread.HTML),
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (node *ThreadNode) saveData(scraper *Scraper) error {
-	if node.ctx.Err() != nil {
-		return nil
-	}
-	if err := utils.SaveJSONToFile(path.Join(DATA_FOLDER, "threads", node.id+".json"), node.thread); err != nil {
-		return err
-	}
 	return nil
 }

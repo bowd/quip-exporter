@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"context"
-	"github.com/boltdb/bolt"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -14,15 +13,15 @@ type Scraper struct {
 	done    chan bool
 	wg      *errgroup.Group
 	logger  *logrus.Entry
-	db      *bolt.DB
+	repo    interfaces.IRepository
 }
 
-func New(client interfaces.IQuipClient, db *bolt.DB, folders []string) *Scraper {
+func New(client interfaces.IQuipClient, repo interfaces.IRepository, folders []string) *Scraper {
 	return &Scraper{
 		logger:  logrus.WithField("module", "quip-scraper"),
 		client:  client,
 		folders: folders,
-		db:      db,
+		repo:    repo,
 	}
 
 }
@@ -38,7 +37,8 @@ func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 }
 
 func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
-	err := node.Load(scraper)
+	scraper.logger.Debugf("Scraping %s", node.ID())
+	err := node.Process(scraper)
 	if err != nil {
 		return err
 	}

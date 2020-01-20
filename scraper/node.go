@@ -9,7 +9,8 @@ type INode interface {
 	Go(func() error)
 	Wait() error
 	Children() []INode
-	Load(*Scraper) error
+	Process(*Scraper) error
+	ID() string
 }
 
 type Node struct {

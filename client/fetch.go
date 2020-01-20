@@ -38,12 +38,12 @@ func (qc *QuipClient) fetchIds(ids []string, fetcher batchFetcher) (map[string][
 		// If it's unauthorised divide and conquer ids
 		midPoint := len(ids) / 2
 		data1, errors1 := qc.fetchIds(ids[0:midPoint], fetcher)
-		data2, errors2 := qc.fetchIds(ids[midPoint+1:], fetcher)
-		err := mergo.Map(&data1, data2)
+		data2, errors2 := qc.fetchIds(ids[midPoint:], fetcher)
+		err := mergo.Merge(&data1, data2)
 		if err != nil {
 			panic(err)
 		}
-		err = mergo.Map(&errors1, errors2)
+		err = mergo.Merge(&errors1, errors2)
 		if err != nil {
 			panic(err)
 		}
@@ -93,6 +93,23 @@ func (qc *QuipClient) getCurrentUser() ([]byte, error) {
 	return qc.getBytes(currentUserURL(), token)
 }
 
+func (qc *QuipClient) getThreadComments(threadID string, cursor *uint64) ([]byte, error) {
+	qc.logger.Debug("Waiting for token")
+	token := qc.checkoutToken()
+	defer qc.checkinToken(token)
+
+	qc.logger.Debugf("Querying comments for thread:%s", threadID)
+	return qc.getBytes(threadCommentsURL(threadID, cursor), token)
+}
+
+func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, error) {
+	qc.logger.Debug("Waiting for token")
+	token := qc.checkoutToken()
+	defer qc.checkinToken(token)
+	qc.logger.Debugf("Exporting thread %s as %s", threadID, exportType)
+	return qc.getBytes(exportThreadURL(threadID, exportType), token)
+}
+
 func (qc *QuipClient) getMap(url string, token Token) (map[string][]byte, error) {
 	rawBody, err := qc.getBytes(url, token)
 	if err != nil {
@@ -133,6 +150,9 @@ func (qc *QuipClient) getBytes(url string, token Token) ([]byte, error) {
 	}
 	if resp.StatusCode == 403 {
 		return nil, UnauthorizedError{}
+	}
+	if resp.StatusCode == 503 {
+		return nil, RateLimitError{}
 	}
 	return []byte(rawBody), nil
 }
