@@ -2,12 +2,10 @@ package scraper
 
 import (
 	"context"
-	"fmt"
-	"golang.org/x/sync/errgroup"
-	"os"
-
+	"github.com/boltdb/bolt"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type Scraper struct {
@@ -16,105 +14,41 @@ type Scraper struct {
 	done    chan bool
 	wg      *errgroup.Group
 	logger  *logrus.Entry
+	db      *bolt.DB
 }
 
-type Item struct {
-	path string
-	id   string
-}
-
-func (i Item) child(segment, id string) Item {
-	return Item{
-		path: i.path + segment + "/",
-		id:   id,
-	}
-}
-
-func New(client interfaces.IQuipClient, folders []string) *Scraper {
+func New(client interfaces.IQuipClient, db *bolt.DB, folders []string) *Scraper {
 	return &Scraper{
 		logger:  logrus.WithField("module", "quip-scraper"),
 		client:  client,
 		folders: folders,
+		db:      db,
 	}
 
 }
 
 func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
-	scraper.wg, ctx = errgroup.WithContext(ctx)
-
-	for _, folderID := range scraper.folders {
-		scraper.queueFolder(ctx, Item{path: "/", id: folderID})
-	}
-
-	err := scraper.wg.Wait()
-
+	root := NewRootNode(ctx)
+	err := scraper.scrape(ctx, root)
 	if err != nil {
 		scraper.logger.Errorln(err)
 	}
 	done <- true
+
 }
 
-func (scraper *Scraper) queueFolder(ctx context.Context, folder Item) {
-	scraper.wg.Go(func() error { return scraper.handleFolder(ctx, folder) })
-}
-
-func (scraper *Scraper) queueThread(ctx context.Context, thread Item) {
-	scraper.wg.Go(func() error { return scraper.handleThread(ctx, thread) })
-}
-
-func (scraper *Scraper) handleFolder(ctx context.Context, item Item) error {
-	scraper.logger.Debugf("Handling folder:%s [%s]", item.id, item.path)
-	if ctx.Err() != nil {
-		return nil
-	}
-
-	folder, err := scraper.client.GetFolder(item.id)
-	if err != nil {
-		return fmt.Errorf("could not get folder: %s", err)
-	}
-
-	for _, child := range folder.Children {
-		if child.IsFolder() {
-			scraper.queueFolder(ctx, item.child(folder.Folder.Title, *child.FolderID))
-		} else if child.IsThread() {
-			scraper.queueThread(ctx, item.child(folder.Folder.Title, *child.ThreadID))
-		}
-	}
-	return nil
-}
-
-func (scraper *Scraper) handleThread(ctx context.Context, item Item) error {
-	scraper.logger.Debugf("Handling thread:%s [%s]", item.id, item.path)
-	if ctx.Err() != nil {
-		return nil
-
-	}
-
-	thread, err := scraper.client.GetThread(item.id)
+func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
+	err := node.Load(scraper)
 	if err != nil {
 		return err
 	}
-	dirPath := "./output" + item.path
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		err = os.MkdirAll(dirPath, 0777)
-		if err != nil {
-			return fmt.Errorf("could not create folder: %s", err)
-		}
+	for _, child := range node.Children() {
+		scraper.queue(ctx, node, child)
 	}
 
-	filePath := dirPath + thread.Filename() + ".html"
-	f, err := os.Create(filePath)
-	if err != nil {
-		scraper.logger.Errorf("Could not create file for: %s (%s)", thread.Thread.Title, filePath)
-		return fmt.Errorf("could not open file: %s: %s", filePath, err)
-	}
-	_, err = f.WriteString(thread.HTML)
-	if err != nil {
-		scraper.logger.Errorf("Could not write to file %s (%s)", thread.Thread.Title, filePath)
-		return fmt.Errorf("could not write file: %s", err)
-	}
+	return node.Wait()
+}
 
-	_ = f.Close()
-
-	return nil
+func (scraper *Scraper) queue(ctx context.Context, parent, child INode) {
+	parent.Go(func() error { return scraper.scrape(ctx, child) })
 }

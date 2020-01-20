@@ -10,7 +10,7 @@ import (
 )
 
 type QuipClient struct {
-	tokens          []string
+	token           string
 	logger          *logrus.Entry
 	rps             int
 	batchWait       time.Duration
@@ -18,10 +18,12 @@ type QuipClient struct {
 
 	folder batchWithLock
 	thread batchWithLock
+	user   batchWithLock
 
-	tokenIndexMutex sync.Mutex
-	lastTokenIndex  int
-	tokenMutex      map[string]*sync.Mutex
+	tokenConcurrency int
+	lastTokenIndex   int
+	tokenIndexMutex  sync.Mutex
+	tokenMutex       []*sync.Mutex
 }
 
 type batchWithLock struct {
@@ -32,7 +34,7 @@ type batchWithLock struct {
 type batch struct {
 	ids       []string
 	data      map[string][]byte
-	error     error
+	error     map[string]error
 	closing   bool
 	done      chan struct{}
 	batchType BatchType
@@ -42,17 +44,20 @@ type BatchType = string
 
 const (
 	FolderBatch BatchType = "FolderBatch"
-	ThreadBatch BatchType = "ThreadBarch"
+	ThreadBatch BatchType = "ThreadBatch"
+	UserBatch   BatchType = "UserBatch"
 )
 
-func New(tokens []string, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
+func New(token string, tokenConcurrency, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
 	qc := &QuipClient{
-		logger:          logrus.WithField("module", "quip-client"),
-		rps:             rps,
-		batchWait:       batchWait,
-		maxItemsInBatch: maxItemsInBatch,
-		lastTokenIndex:  0,
-		tokenMutex:      make(map[string]*sync.Mutex),
+		token:            token,
+		tokenConcurrency: tokenConcurrency,
+		logger:           logrus.WithField("module", "quip-client"),
+		rps:              rps,
+		batchWait:        batchWait,
+		maxItemsInBatch:  maxItemsInBatch,
+		lastTokenIndex:   0,
+		tokenMutex:       make([]*sync.Mutex, tokenConcurrency),
 		folder: batchWithLock{
 			mutex: &sync.Mutex{},
 			batch: nil,
@@ -63,21 +68,14 @@ func New(tokens []string, rps int, batchWait time.Duration, maxItemsInBatch int)
 		},
 	}
 
-	qc.tokens = make([]string, 0, len(tokens))
-	for _, token := range tokens {
-		if err := qc.testToken(token); err == nil {
-			qc.tokens = append(qc.tokens, token)
-			qc.tokenMutex[token] = &sync.Mutex{}
-		} else {
-			qc.logger.Warnf("Skipping token: %s: %s", token, err)
-		}
+	if err := qc.testToken(); err != nil {
+		return nil, fmt.Errorf("provided token is invalid")
 	}
 
-	if len(qc.tokens) == 0 {
-		return nil, fmt.Errorf("could not find any valid token in config")
+	for i := 0; i < tokenConcurrency; i++ {
+		qc.tokenMutex[i] = &sync.Mutex{}
 	}
 
-	qc.logger.Debugf("Setup client with %d valid tokens", len(qc.tokens))
 	return qc, nil
 }
 
@@ -90,6 +88,8 @@ func (qc *QuipClient) GetFolder(folderID string) (*types.QuipFolder, error) {
 	var folder types.QuipFolder
 	err = json.Unmarshal(data, &folder)
 	if err != nil {
+		qc.logger.Errorln(err)
+		qc.logger.Debugln(string(data))
 		return nil, err
 	}
 
@@ -109,4 +109,26 @@ func (qc *QuipClient) GetThread(threadID string) (*types.QuipThread, error) {
 	}
 
 	return &thread, nil
+}
+
+func (qc *QuipClient) GetCurrentUser() (*types.QuipUser, error) {
+	data, err := qc.getCurrentUser()
+	var user types.QuipUser
+	err = json.Unmarshal(data, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (qc *QuipClient) GetUser(userID string) (*types.QuipUser, error) {
+	data, err := qc.getUserThunk(userID)()
+	var user types.QuipUser
+	err = json.Unmarshal(data, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

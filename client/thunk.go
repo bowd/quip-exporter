@@ -10,6 +10,11 @@ func (qc *QuipClient) getThreadThunk(threadID string) func() ([]byte, error) {
 	return qc.getThunk(b, ThreadBatch, threadID)
 }
 
+func (qc *QuipClient) getUserThunk(userID string) func() ([]byte, error) {
+	b := &qc.user
+	return qc.getThunk(b, UserBatch, userID)
+}
+
 func (qc *QuipClient) getThunk(b *batchWithLock, batchType BatchType, id string) func() ([]byte, error) {
 	b.mutex.Lock()
 	if b.batch == nil {
@@ -27,10 +32,12 @@ func (qc *QuipClient) getThunk(b *batchWithLock, batchType BatchType, id string)
 		<-bt.done
 
 		var data []byte
+		var err error
 		if pos < len(bt.data) {
 			data = bt.data[id]
+			err = bt.error[id]
 		}
 
-		return data, bt.error
+		return data, err
 	}
 }

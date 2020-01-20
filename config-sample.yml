@@ -4,5 +4,8 @@ scraper:
   folders:
     - <folder here>
   rps: 1
+  batch:
+    waith: 3ms
+    maxItems: 10
 logging: "*=info"
 

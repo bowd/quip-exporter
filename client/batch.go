@@ -24,7 +24,7 @@ func (qc *QuipClient) addToBatch(b *batchWithLock, id string) int {
 			bt := b.batch
 			bt.closing = true
 			b.batch = nil
-			go qc.runBatch(bt)
+			go qc.fetchBatch(bt)
 		}
 	}
 
@@ -43,14 +43,5 @@ func (qc *QuipClient) startTimer(b *batchWithLock, bt *batch) {
 
 	b.batch = nil
 	b.mutex.Unlock()
-	qc.runBatch(bt)
-}
-
-func (qc *QuipClient) runBatch(b *batch) {
-	if b.batchType == FolderBatch {
-		b.data, b.error = qc.getFolders(b.ids)
-	} else if b.batchType == ThreadBatch {
-		b.data, b.error = qc.getThreads(b.ids)
-	}
-	close(b.done)
+	qc.fetchBatch(bt)
 }
