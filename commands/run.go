@@ -17,9 +17,9 @@ import (
 )
 
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Say hello!",
-	Long:  "Address a wonderful greeting to the majestic executioner of this CLI",
+	Use:   "scrape",
+	Short: "Start scraper",
+	Long:  "Scrape Quip starting from the provided token's current user",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := logrus.WithField("module", "main")
 		err := utils.EnsureDir("./output")
@@ -48,12 +48,7 @@ var runCmd = &cobra.Command{
 			return
 		}
 
-		scraper := scraper.New(
-			quipClient,
-			repo,
-			viper.GetStringSlice("scraper.folders"),
-		)
-
+		scraper := scraper.New(quipClient, repo)
 		go scraper.Run(ctx, doneChan)
 
 		cleanup := func() {

@@ -8,20 +8,18 @@ import (
 )
 
 type Scraper struct {
-	client  interfaces.IQuipClient
-	folders []string
-	done    chan bool
-	wg      *errgroup.Group
-	logger  *logrus.Entry
-	repo    interfaces.IRepository
+	client interfaces.IQuipClient
+	done   chan bool
+	wg     *errgroup.Group
+	logger *logrus.Entry
+	repo   interfaces.IRepository
 }
 
-func New(client interfaces.IQuipClient, repo interfaces.IRepository, folders []string) *Scraper {
+func New(client interfaces.IQuipClient, repo interfaces.IRepository) *Scraper {
 	return &Scraper{
-		logger:  logrus.WithField("module", "quip-scraper"),
-		client:  client,
-		folders: folders,
-		repo:    repo,
+		logger: logrus.WithField("module", "quip-scraper"),
+		client: client,
+		repo:   repo,
 	}
 
 }
