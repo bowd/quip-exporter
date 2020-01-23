@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -13,7 +14,10 @@ func NewThreadSlidesNode(parent *ThreadNode) INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadSlidesNode{
 		ThreadNode: &ThreadNode{
-			Node: &Node{
+			BaseNode: &BaseNode{
+				logger: logrus.WithField("module", NodeTypes.ThreadSlides).
+					WithField("id", parent.id).
+					WithField("path", parent.path),
 				path: parent.path,
 				id:   parent.id,
 				ctx:  ctx,
@@ -33,7 +37,6 @@ func (node *ThreadSlidesNode) Children() []INode {
 }
 
 func (node *ThreadSlidesNode) Process(scraper *Scraper) error {
-	scraper.logger.Debugf("Handling thread:%s:PDF [%s/%s]", node.id, node.path, node.thread.Filename())
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -48,6 +51,8 @@ func (node *ThreadSlidesNode) Process(scraper *Scraper) error {
 			return err
 		}
 		return scraper.repo.SaveThreadSlides(node.path, node.thread, pdf)
+	} else {
+		node.logger.Debugf("already exported")
 	}
 	return nil
 }

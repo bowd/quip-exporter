@@ -55,6 +55,6 @@ func threadCommentsURL(threadID string, cursor *uint64) string {
 }
 
 func (qc *QuipClient) getWithToken(url string, token Token) *gorequest.SuperAgent {
-	qc.logger.Debugf("Requesting %s with %s", url, token)
+	qc.logger.WithField("url", url).WithField("token", token.index).Debugf("executing query")
 	return gorequest.New().Get(url).Set("Authorization", "Bearer "+token.value)
 }

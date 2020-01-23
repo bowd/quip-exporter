@@ -2,22 +2,24 @@ package scraper
 
 import (
 	"context"
-	"fmt"
 	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
 type UserNode struct {
-	*Node
+	*BaseNode
 	user *types.QuipUser
 }
 
 func NewUserNode(ctx context.Context, id string) INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &UserNode{
-		Node: &Node{
+		BaseNode: &BaseNode{
+			logger: logrus.WithField("module", NodeTypes.User).
+				WithField("id", id),
 			id:  id,
 			wg:  wg,
 			ctx: ctx,
@@ -25,8 +27,8 @@ func NewUserNode(ctx context.Context, id string) INode {
 	}
 }
 
-func (node *UserNode) ID() string {
-	return fmt.Sprintf("user:%s", node.id)
+func (node *UserNode) Type() NodeType {
+	return NodeTypes.User
 }
 
 func (node *UserNode) Children() []INode {
@@ -34,7 +36,6 @@ func (node *UserNode) Children() []INode {
 }
 
 func (node *UserNode) Process(scraper *Scraper) error {
-	scraper.logger.Debugf("Handling user:%s", node.id)
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -45,7 +46,7 @@ func (node *UserNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		user, err = scraper.client.GetUser(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
-			scraper.logger.Debugf("Ignoring Unauthorized user:%s [%s]", node.id, node.path)
+			node.logger.Warn("skipping unauthorized")
 			return nil
 		} else if err != nil {
 			return err
@@ -56,7 +57,7 @@ func (node *UserNode) Process(scraper *Scraper) error {
 	} else if err != nil {
 		return err
 	} else {
-		scraper.logger.Debugf("Loaded from repo user:%s", node.id)
+		node.logger.Debug("loaded from repo")
 	}
 	node.user = user
 	return nil

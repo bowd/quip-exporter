@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -10,20 +11,47 @@ type INode interface {
 	Wait() error
 	Children() []INode
 	Process(*Scraper) error
-	ID() string
+	Type() NodeType
 }
 
-type Node struct {
-	path string
-	id   string
-	wg   *errgroup.Group
-	ctx  context.Context
+type NodeType = string
+
+var NodeTypes = struct {
+	CurrentUser       NodeType
+	Blob              NodeType
+	User              NodeType
+	Folder            NodeType
+	Thread            NodeType
+	ThreadHTML        NodeType
+	ThreadComments    NodeType
+	ThreadDocument    NodeType
+	ThreadSlides      NodeType
+	ThreadSpreadsheet NodeType
+}{
+	CurrentUser:       "current-user",
+	Blob:              "blob",
+	User:              "user",
+	Folder:            "folder",
+	Thread:            "thread",
+	ThreadHTML:        "thread-html",
+	ThreadComments:    "thread-comments",
+	ThreadDocument:    "thread-document",
+	ThreadSlides:      "thread-slides",
+	ThreadSpreadsheet: "thread-spreadsheet",
 }
 
-func (node *Node) Go(fn func() error) {
+type BaseNode struct {
+	path   string
+	id     string
+	wg     *errgroup.Group
+	ctx    context.Context
+	logger *logrus.Entry
+}
+
+func (node *BaseNode) Go(fn func() error) {
 	node.wg.Go(fn)
 }
 
-func (node *Node) Wait() error {
+func (node *BaseNode) Wait() error {
 	return node.wg.Wait()
 }

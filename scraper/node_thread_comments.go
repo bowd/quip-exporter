@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -16,7 +17,10 @@ func NewThreadCommentsNode(parent *ThreadNode) INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadCommentsNode{
 		ThreadNode: &ThreadNode{
-			Node: &Node{
+			BaseNode: &BaseNode{
+				logger: logrus.WithField("module", NodeTypes.ThreadComments).
+					WithField("id", parent.id).
+					WithField("path", parent.path),
 				path: parent.path,
 				id:   parent.id,
 				ctx:  ctx,
@@ -25,6 +29,10 @@ func NewThreadCommentsNode(parent *ThreadNode) INode {
 			thread: parent.thread,
 		},
 	}
+}
+
+func (node ThreadCommentsNode) Type() NodeType {
+	return NodeTypes.ThreadComments
 }
 
 func (node *ThreadCommentsNode) ID() string {
@@ -59,7 +67,7 @@ func (node *ThreadCommentsNode) Process(scraper *Scraper) error {
 	} else if err != nil {
 		return err
 	} else {
-		scraper.logger.Debugf("Loaded from repo thread:%s:messages [%s]", node.id, node.path)
+		node.logger.Debugf("loaded from repo")
 	}
 	node.comments = comments
 	return nil

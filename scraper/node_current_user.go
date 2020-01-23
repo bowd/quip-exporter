@@ -4,30 +4,32 @@ import (
 	"context"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
-type RootNode struct {
-	*Node
+type CurrentUserNode struct {
+	*BaseNode
 	currentUser *types.QuipUser
 }
 
-func NewRootNode(ctx context.Context) INode {
+func NewCurrentUserNode(ctx context.Context) INode {
 	wg, ctx := errgroup.WithContext(ctx)
-	return &RootNode{
-		Node: &Node{
-			path: "/",
-			wg:   wg,
-			ctx:  ctx,
+	return &CurrentUserNode{
+		BaseNode: &BaseNode{
+			logger: logrus.WithField("module", NodeTypes.CurrentUser),
+			path:   "/",
+			wg:     wg,
+			ctx:    ctx,
 		},
 	}
 }
 
-func (node *RootNode) ID() string {
-	return "root"
+func (node CurrentUserNode) Type() NodeType {
+	return NodeTypes.CurrentUser
 }
 
-func (node *RootNode) Children() []INode {
+func (node CurrentUserNode) Children() []INode {
 	children := make([]INode, 0, 0)
 	for _, folderID := range node.currentUser.Folders() {
 		children = append(children, NewFolderNode(node.ctx, node.path, folderID))
@@ -36,7 +38,7 @@ func (node *RootNode) Children() []INode {
 	return children
 }
 
-func (node *RootNode) Process(scraper *Scraper) error {
+func (node *CurrentUserNode) Process(scraper *Scraper) error {
 	var currentUser *types.QuipUser
 	var err error
 	currentUser, err = scraper.repo.GetCurrentUser()
@@ -51,7 +53,7 @@ func (node *RootNode) Process(scraper *Scraper) error {
 	} else if err != nil {
 		return err
 	} else {
-		scraper.logger.Debugf("Loaded current user from repository")
+		node.logger.Debugf("loaded from repository")
 	}
 	node.currentUser = currentUser
 	return nil

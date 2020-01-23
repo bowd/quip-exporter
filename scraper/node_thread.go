@@ -2,22 +2,25 @@ package scraper
 
 import (
 	"context"
-	"fmt"
 	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
 type ThreadNode struct {
-	*Node
+	*BaseNode
 	thread *types.QuipThread
 }
 
 func NewThreadNode(ctx context.Context, path, id string) INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &ThreadNode{
-		Node: &Node{
+		BaseNode: &BaseNode{
+			logger: logrus.WithField("module", NodeTypes.Thread).
+				WithField("id", id).
+				WithField("path", path),
 			id:   id,
 			path: path,
 			wg:   wg,
@@ -26,8 +29,8 @@ func NewThreadNode(ctx context.Context, path, id string) INode {
 	}
 }
 
-func (node *ThreadNode) ID() string {
-	return fmt.Sprintf("thread:%s [%s]", node.id, node.path)
+func (node ThreadNode) Type() NodeType {
+	return NodeTypes.Thread
 }
 
 func (node *ThreadNode) Children() []INode {
@@ -55,7 +58,7 @@ func (node *ThreadNode) Children() []INode {
 		children = append(children, NewThreadSpreadsheetNode(node))
 	}
 	if node.thread.IsChannel() {
-		fmt.Println("!!!!!! Found channel thread: ", node.thread.Thread.ID)
+		node.logger.Infof("found type channel [!!]")
 	}
 	return children
 }
@@ -72,7 +75,7 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		thread, err = scraper.client.GetThread(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
-			scraper.logger.Debugf("Ignoring Unauthorized thread:%s [%s]", node.id, node.path)
+			node.logger.Warn("skipping unauthorised")
 			return nil
 		} else if err != nil {
 			return err
@@ -83,7 +86,7 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 	} else if err != nil {
 		return err
 	} else {
-		scraper.logger.Debugf("Loaded from repo thread:%s [%s]", node.id, node.path)
+		node.logger.Debugf("loaded from repository")
 	}
 	node.thread = thread
 	return nil

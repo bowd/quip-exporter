@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"regexp"
 )
@@ -10,13 +11,16 @@ type ThreadHTMLNode struct {
 	*ThreadNode
 }
 
-var blobRegexp *regexp.Regexp = regexp.MustCompile("blob/([0-9a-zA-Z]+)/([0-9a-zA-z]+)")
+var blobRegexp *regexp.Regexp = regexp.MustCompile("blob/([0-9a-zA-Z_-]+)/([0-9a-zA-z_-]+)")
 
 func NewThreadHTMLNode(parent *ThreadNode) INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadHTMLNode{
 		ThreadNode: &ThreadNode{
-			Node: &Node{
+			BaseNode: &BaseNode{
+				logger: logrus.WithField("module", NodeTypes.ThreadHTML).
+					WithField("id", parent.id).
+					WithField("path", parent.path),
 				path: parent.path,
 				id:   parent.id,
 				ctx:  ctx,
@@ -32,18 +36,18 @@ func (node *ThreadHTMLNode) ID() string {
 }
 
 func (node *ThreadHTMLNode) Children() []INode {
-	matches := blobRegexp.FindAllStringSubmatch(node.thread.HTML, -1)
-	children := make([]INode, 0, 0)
-	for _, match := range matches {
-		if match[1] == node.id {
-			children = append(children, NewBlobNode(node.ThreadNode, match[2]))
-		}
-	}
 	return []INode{}
+	// matches := blobRegexp.FindAllStringSubmatch(node.thread.HTML, -1)
+	// children := make([]INode, 0, 0)
+	// for _, match := range matches {
+	// 	if match[1] == node.id {
+	// 		children = append(children, NewBlobNode(node.ThreadNode, match[2]))
+	// 	}
+	// }
+	// return children
 }
 
 func (node *ThreadHTMLNode) Process(scraper *Scraper) error {
-	scraper.logger.Debugf("Handling thread:%s:HTML [%s/%s]", node.id, node.path, node.thread.Filename())
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -54,6 +58,9 @@ func (node *ThreadHTMLNode) Process(scraper *Scraper) error {
 
 	if !isExported {
 		return scraper.repo.SaveThreadHTML(node.path, node.thread)
+	} else {
+		node.logger.Debugf("already exported")
 	}
+
 	return nil
 }

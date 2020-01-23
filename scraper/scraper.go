@@ -15,8 +15,10 @@ type Scraper struct {
 	logger        *logrus.Entry
 	repo          interfaces.IRepository
 	progressMutex *sync.Mutex
-	queuedNodes   uint
-	doneNodes     uint
+	progress      struct {
+		queued map[string]int
+		done   map[string]int
+	}
 }
 
 func New(client interfaces.IQuipClient, repo interfaces.IRepository) *Scraper {
@@ -25,12 +27,19 @@ func New(client interfaces.IQuipClient, repo interfaces.IRepository) *Scraper {
 		client:        client,
 		repo:          repo,
 		progressMutex: &sync.Mutex{},
+		progress: struct {
+			queued map[string]int
+			done   map[string]int
+		}{
+			queued: make(map[string]int),
+			done:   make(map[string]int),
+		},
 	}
 }
 
 func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 	go scraper.printProgress()
-	root := NewRootNode(ctx)
+	root := NewCurrentUserNode(ctx)
 	err := scraper.scrape(ctx, root)
 	if err != nil {
 		scraper.logger.Errorln(err)
@@ -40,7 +49,6 @@ func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 }
 
 func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
-	scraper.logger.Debugf("Scraping %s", node.ID())
 	err := node.Process(scraper)
 	if err != nil {
 		return err
@@ -50,11 +58,11 @@ func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
 	}
 
 	err = node.Wait()
-	go scraper.incrementDone()
+	go scraper.incrementDone(node)
 	return err
 }
 
 func (scraper *Scraper) queue(ctx context.Context, parent, child INode) {
-	go scraper.incrementQueued()
+	go scraper.incrementQueued(child)
 	parent.Go(func() error { return scraper.scrape(ctx, child) })
 }

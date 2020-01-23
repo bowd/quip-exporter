@@ -2,23 +2,26 @@ package scraper
 
 import (
 	"context"
-	"fmt"
 	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"path"
 )
 
 type FolderNode struct {
-	*Node
+	*BaseNode
 	folder *types.QuipFolder
 }
 
 func NewFolderNode(ctx context.Context, path, id string) INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &FolderNode{
-		Node: &Node{
+		BaseNode: &BaseNode{
+			logger: logrus.WithField("module", NodeTypes.Folder).
+				WithField("id", id).
+				WithField("path", path),
 			id:   id,
 			path: path,
 			wg:   wg,
@@ -27,11 +30,11 @@ func NewFolderNode(ctx context.Context, path, id string) INode {
 	}
 }
 
-func (node *FolderNode) ID() string {
-	return fmt.Sprintf("folder:%s [%s]", node.id, node.path)
+func (node FolderNode) Type() NodeType {
+	return NodeTypes.Folder
 }
 
-func (node *FolderNode) Children() []INode {
+func (node FolderNode) Children() []INode {
 	if node.folder == nil {
 		return []INode{}
 	}
@@ -61,7 +64,7 @@ func (node *FolderNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		folder, err = scraper.client.GetFolder(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
-			scraper.logger.Debugf("Ignoring Unauthorized folder:%s [%s]", node.id, node.path)
+			node.logger.Warn("skipping unauthorised")
 			return nil
 		} else if err != nil {
 			return err
@@ -72,7 +75,7 @@ func (node *FolderNode) Process(scraper *Scraper) error {
 	} else if err != nil {
 		return err
 	} else {
-		scraper.logger.Debugf("Loaded from repo folder:%s [%s]", node.id, node.path)
+		node.logger.Debugf("loaded from repository")
 	}
 
 	node.folder = folder

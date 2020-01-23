@@ -62,64 +62,57 @@ func (qc *QuipClient) fetchIds(ids []string, fetcher batchFetcher) (map[string][
 }
 
 func (qc *QuipClient) getFolders(ids []string) (map[string][]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "folders").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Infof("Querying folder batch [%d folders]", len(ids))
 	return qc.getMap(batchURL(FOLDERS_MASK, ids), token)
 }
 
 func (qc *QuipClient) getThreads(ids []string) (map[string][]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "threads").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Debugf("Querying threads batch [%d threads]", len(ids))
 	return qc.getMap(batchURL(THREADS_MASK, ids), token)
 }
 
 func (qc *QuipClient) getUsers(ids []string) (map[string][]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "users").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Debugf("Querying users batch [%d users]", len(ids))
 	return qc.getMap(batchURL(USERS_MASK, ids), token)
 }
 
 func (qc *QuipClient) getCurrentUser() ([]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "current-user").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Debugf("Querying current user")
 	return qc.getBytes(currentUserURL(), token)
 }
 
 func (qc *QuipClient) getThreadComments(threadID string, cursor *uint64) ([]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "thread-comments").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Debugf("Querying comments for thread:%s", threadID)
 	return qc.getBytes(threadCommentsURL(threadID, cursor), token)
 }
 
 func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "export-"+exportType).Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
-	qc.logger.Debugf("Exporting thread %s as %s", threadID, exportType)
 	return qc.getBytes(exportThreadURL(threadID, exportType), token)
 }
 
 func (qc *QuipClient) getBlob(threadID, blobID string) ([]byte, error) {
-	qc.logger.Debug("Waiting for token")
+	qc.logger.WithField("call", "blob").Debug("waiting for token")
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	qc.logger.Debugf("Querying blob %s:%s", threadID, blobID)
 	return qc.getBytes(blobURL(threadID, blobID), token)
 }
 
