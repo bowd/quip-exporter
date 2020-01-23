@@ -45,12 +45,15 @@ func (node *CurrentUserNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		currentUser, err = scraper.client.GetCurrentUser()
 		if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		if err := scraper.repo.SaveCurrentUser(currentUser); err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

@@ -67,12 +67,15 @@ func (node *FolderNode) Process(scraper *Scraper) error {
 			node.logger.Warn("skipping unauthorised")
 			return nil
 		} else if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		if err := scraper.repo.SaveFolder(folder); err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

@@ -49,12 +49,15 @@ func (node *UserNode) Process(scraper *Scraper) error {
 			node.logger.Warn("skipping unauthorized")
 			return nil
 		} else if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		if err := scraper.repo.SaveUser(user); err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debug("loaded from repo")

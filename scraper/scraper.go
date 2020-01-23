@@ -15,6 +15,7 @@ type Scraper struct {
 	logger        *logrus.Entry
 	repo          interfaces.IRepository
 	progressMutex *sync.Mutex
+	seenMap       *sync.Map
 	progress      struct {
 		queued map[string]int
 		done   map[string]int
@@ -27,6 +28,7 @@ func New(client interfaces.IQuipClient, repo interfaces.IRepository) *Scraper {
 		client:        client,
 		repo:          repo,
 		progressMutex: &sync.Mutex{},
+		seenMap:       &sync.Map{},
 		progress: struct {
 			queued map[string]int
 			done   map[string]int
@@ -45,7 +47,6 @@ func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 		scraper.logger.Errorln(err)
 	}
 	done <- true
-
 }
 
 func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
@@ -63,6 +64,24 @@ func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
 }
 
 func (scraper *Scraper) queue(ctx context.Context, parent, child INode) {
-	go scraper.incrementQueued(child)
-	parent.Go(func() error { return scraper.scrape(ctx, child) })
+	if !scraper.shouldSkip(child) {
+		go scraper.incrementQueued(child)
+		parent.Go(func() error { return scraper.scrape(ctx, child) })
+	}
+}
+
+func (scraper *Scraper) shouldSkip(child INode) bool {
+	if child.Type() == NodeTypes.User {
+		key := child.Type() + "::" + child.ID()
+		_, seen := scraper.seenMap.Load(key)
+		if seen {
+			return true
+		} else {
+			scraper.seenMap.Store(key, true)
+			return false
+		}
+	} else {
+		return false
+	}
+
 }

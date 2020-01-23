@@ -131,6 +131,9 @@ func (qc *QuipClient) GetCurrentUser() (*types.QuipUser, error) {
 
 func (qc *QuipClient) GetUser(userID string) (*types.QuipUser, error) {
 	data, err := qc.getUserThunk(userID)()
+	if err != nil {
+		return nil, err
+	}
 	var user types.QuipUser
 	err = json.Unmarshal(data, &user)
 	if err != nil {
@@ -153,28 +156,7 @@ func (qc *QuipClient) ExportThreadSpreadsheet(threadID string) ([]byte, error) {
 }
 
 func (qc *QuipClient) GetThreadComments(threadID string) ([]*types.QuipMessage, error) {
-	allComments := make([]*types.QuipMessage, 0, 10)
-	var cursor *uint64
-	for {
-		data, err := qc.getThreadComments(threadID, cursor)
-		if err != nil {
-			return nil, err
-		}
-		var comments []*types.QuipMessage
-		err = json.Unmarshal(data, &comments)
-		if err != nil {
-			return nil, err
-		}
-		if len(comments) == 0 {
-			break
-		}
-		allComments = append(allComments, comments...)
-		nextCursor := comments[len(comments)-1].CreatedUsec - 1
-		cursor = &nextCursor
-	}
-
-	qc.logger.Debugf("Got %d comments: ", len(allComments))
-	return allComments, nil
+	return qc.getThreadComments(threadID)
 }
 
 func (qc *QuipClient) GetBlob(threadID, blobID string) ([]byte, error) {

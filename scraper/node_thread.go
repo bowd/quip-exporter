@@ -78,12 +78,15 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 			node.logger.Warn("skipping unauthorised")
 			return nil
 		} else if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		if err := scraper.repo.SaveThread(thread); err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

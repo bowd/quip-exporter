@@ -53,11 +53,16 @@ func (node *ThreadHTMLNode) Process(scraper *Scraper) error {
 	}
 	isExported, err := scraper.repo.HasExportedHTML(node.id)
 	if err != nil {
+		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
-		return scraper.repo.SaveThreadHTML(node.path, node.thread)
+		err := scraper.repo.SaveThreadHTML(node.path, node.thread)
+		if err != nil {
+			node.logger.Errorln(err)
+		}
+		return err
 	} else {
 		node.logger.Debugf("already exported")
 	}

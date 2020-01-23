@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/bowd/quip-exporter/types"
 	"github.com/imdario/mergo"
 	"net/http"
 	"time"
@@ -89,11 +90,31 @@ func (qc *QuipClient) getCurrentUser() ([]byte, error) {
 	return qc.getBytes(currentUserURL(), token)
 }
 
-func (qc *QuipClient) getThreadComments(threadID string, cursor *uint64) ([]byte, error) {
+func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getBytes(threadCommentsURL(threadID, cursor), token)
+	allComments := make([]*types.QuipMessage, 0, 10)
+	var cursor *uint64
+	for {
+		data, err := qc.getBytes(threadCommentsURL(threadID, cursor), token)
+		if err != nil {
+			return nil, err
+		}
+		var comments []*types.QuipMessage
+		err = json.Unmarshal(data, &comments)
+		if err != nil {
+			return nil, err
+		}
+		if len(comments) == 0 {
+			break
+		}
+		allComments = append(allComments, comments...)
+		nextCursor := comments[len(comments)-1].CreatedUsec - 1
+		cursor = &nextCursor
+		<-time.After(time.Duration(int(1000/qc.rps) * int(time.Millisecond)))
+	}
+	return allComments, nil
 }
 
 func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, error) {

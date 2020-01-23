@@ -42,12 +42,14 @@ func (node *ThreadSlidesNode) Process(scraper *Scraper) error {
 	}
 	isExported, err := scraper.repo.HasExportedSlides(node.id)
 	if err != nil {
+		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
 		pdf, err := scraper.client.ExportThreadSlides(node.id)
 		if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		return scraper.repo.SaveThreadSlides(node.path, node.thread, pdf)

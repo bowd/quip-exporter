@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"fmt"
 	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
@@ -35,7 +34,7 @@ func (node BlobNode) Type() NodeType {
 }
 
 func (node BlobNode) ID() string {
-	return fmt.Sprintf("%s:%s [%s]", node.Type(), node.id, node.path)
+	return node.id
 }
 
 func (node BlobNode) Children() []INode {
@@ -43,7 +42,6 @@ func (node BlobNode) Children() []INode {
 }
 
 func (node *BlobNode) Process(scraper *Scraper) error {
-	scraper.logger.Debugf("Handling blob:%s", node.id)
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -65,6 +63,7 @@ func (node *BlobNode) Process(scraper *Scraper) error {
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

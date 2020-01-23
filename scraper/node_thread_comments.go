@@ -59,12 +59,15 @@ func (node *ThreadCommentsNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		comments, err = scraper.client.GetThreadComments(node.id)
 		if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		if err := scraper.repo.SaveThreadComments(node.id, comments); err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
+		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repo")

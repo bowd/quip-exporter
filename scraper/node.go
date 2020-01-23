@@ -12,6 +12,7 @@ type INode interface {
 	Children() []INode
 	Process(*Scraper) error
 	Type() NodeType
+	ID() string
 }
 
 type NodeType = string
@@ -50,6 +51,10 @@ type BaseNode struct {
 
 func (node *BaseNode) Go(fn func() error) {
 	node.wg.Go(fn)
+}
+
+func (node BaseNode) ID() string {
+	return node.id
 }
 
 func (node *BaseNode) Wait() error {

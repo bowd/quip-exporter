@@ -42,12 +42,14 @@ func (node *ThreadSpreadsheetNode) Process(scraper *Scraper) error {
 	}
 	isExported, err := scraper.repo.HasExportedSpreadsheet(node.id)
 	if err != nil {
+		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
 		pdf, err := scraper.client.ExportThreadSpreadsheet(node.id)
 		if err != nil {
+			node.logger.Errorln(err)
 			return err
 		}
 		return scraper.repo.SaveThreadSpreadsheet(node.path, node.thread, pdf)
