@@ -1,11 +1,13 @@
 scraper:
-  tokens:
-    - <token here>
-  folders:
-    - <folder here>
-  rps: 1
+  token: <your token here>
+  tokenConcurrency: 1
+  rps: 3
   batch:
-    waith: 3ms
-    maxItems: 10
+    wait: 3ms
+    maxItems: 30
+
+repo:
+  basePath: "./output"
 logging: "*=info"
+
 
