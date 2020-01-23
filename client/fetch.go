@@ -26,12 +26,16 @@ func (qc *QuipClient) fetchBatch(b *batch) {
 
 func (qc *QuipClient) fetchIds(ids []string, fetcher batchFetcher) (map[string][]byte, map[string]error) {
 	if len(ids) == 0 {
-		return nil, nil
+		return map[string][]byte{}, map[string]error{}
 	}
 
 	data, err := fetcher(ids)
 	if err == nil {
-		return data, nil
+		return data, map[string]error{}
+	}
+
+	if len(ids) == 1 {
+		return data, map[string]error{ids[0]: err}
 	}
 
 	if IsUnauthorizedError(err) {
@@ -54,7 +58,7 @@ func (qc *QuipClient) fetchIds(ids []string, fetcher batchFetcher) (map[string][
 	for _, id := range ids {
 		errors[id] = err
 	}
-	return nil, errors
+	return map[string][]byte{}, errors
 }
 
 func (qc *QuipClient) getFolders(ids []string) (map[string][]byte, error) {

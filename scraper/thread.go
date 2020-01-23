@@ -3,6 +3,7 @@ package scraper
 import (
 	"context"
 	"fmt"
+	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"golang.org/x/sync/errgroup"
@@ -67,7 +68,10 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 	thread, err = scraper.repo.GetThread(node.id)
 	if err != nil && repositories.IsNotFoundError(err) {
 		thread, err = scraper.client.GetThread(node.id)
-		if err != nil {
+		if err != nil && client.IsUnauthorizedError(err) {
+			scraper.logger.Debugf("Ignoring Unauthorized thread:%s [%s]", node.id, node.path)
+			return nil
+		} else if err != nil {
 			return err
 		}
 		if err := scraper.repo.SaveThread(thread); err != nil {

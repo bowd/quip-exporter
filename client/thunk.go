@@ -25,18 +25,14 @@ func (qc *QuipClient) getThunk(b *batchWithLock, batchType BatchType, id string)
 	}
 
 	bt := b.batch
-	pos := qc.addToBatch(b, id)
+	_ = qc.addToBatch(b, id)
 	b.mutex.Unlock()
 
 	return func() ([]byte, error) {
 		<-bt.done
 
-		var data []byte
-		var err error
-		if pos < len(bt.data) {
-			data = bt.data[id]
-			err = bt.error[id]
-		}
+		data := bt.data[id]
+		err := bt.error[id]
 
 		if (data == nil || len(data) == 0) && err == nil {
 			qc.logger.Warnln("Response is empty and there's no error:")
