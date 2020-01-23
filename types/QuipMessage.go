@@ -1,6 +1,7 @@
 package types
 
 type QuipMessage struct {
+	ID          string                `json:"id"`
 	AuthorID    string                `json:"author_id"`
 	CreatedUsec uint64                `json:"created_usec"`
 	Text        string                `json:"text"`

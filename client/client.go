@@ -169,9 +169,10 @@ func (qc *QuipClient) GetThreadComments(threadID string) ([]*types.QuipMessage, 
 			break
 		}
 		allComments = append(allComments, comments...)
-		cursor = &comments[len(comments)-1].CreatedUsec
+		nextCursor := comments[len(comments)-1].CreatedUsec - 1
+		cursor = &nextCursor
 	}
 
-	qc.logger.Debug("Got comments: ", allComments)
+	qc.logger.Debugf("Got %d comments: ", len(allComments))
 	return allComments, nil
 }

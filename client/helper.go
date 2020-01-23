@@ -23,8 +23,8 @@ const (
 	FOLDER_MASK                 = "/folders/%s"
 	EXPORT_MASK                 = "/threads/%s/export/%s"
 	CURRENT_USER_PATH           = "/users/current"
-	THREAD_COMMENTS_MASK        = "/messages/%s?count=50"
-	THREAD_COMMENTS_CURSOR_MASK = "/messages/%s?count=50&max_created_usec=%d"
+	THREAD_COMMENTS_MASK        = "/messages/%s?count=100"
+	THREAD_COMMENTS_CURSOR_MASK = "/messages/%s?count=100&max_created_usec=%d"
 )
 
 func batchURL(pathMask string, ids []string) string {
