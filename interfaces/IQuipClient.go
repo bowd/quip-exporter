@@ -13,4 +13,5 @@ type IQuipClient interface {
 	ExportThreadSpreadsheet(threadID string) ([]byte, error)
 
 	GetThreadComments(threadID string) ([]*types.QuipMessage, error)
+	GetBlob(threadID, blobID string) ([]byte, error)
 }

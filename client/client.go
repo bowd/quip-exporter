@@ -176,3 +176,7 @@ func (qc *QuipClient) GetThreadComments(threadID string) ([]*types.QuipMessage, 
 	qc.logger.Debugf("Got %d comments: ", len(allComments))
 	return allComments, nil
 }
+
+func (qc *QuipClient) GetBlob(threadID, blobID string) ([]byte, error) {
+	return qc.getBlob(threadID, blobID)
+}

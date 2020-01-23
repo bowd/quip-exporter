@@ -3,6 +3,7 @@ package scraper
 import (
 	"context"
 	"fmt"
+	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"golang.org/x/sync/errgroup"
@@ -43,7 +44,10 @@ func (node *UserNode) Process(scraper *Scraper) error {
 	user, err = scraper.repo.GetUser(node.id)
 	if err != nil && repositories.IsNotFoundError(err) {
 		user, err = scraper.client.GetUser(node.id)
-		if err != nil {
+		if err != nil && client.IsUnauthorizedError(err) {
+			scraper.logger.Debugf("Ignoring Unauthorized user:%s [%s]", node.id, node.path)
+			return nil
+		} else if err != nil {
 			return err
 		}
 		if err := scraper.repo.SaveUser(user); err != nil {

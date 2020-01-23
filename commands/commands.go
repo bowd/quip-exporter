@@ -76,6 +76,6 @@ func init() {
 	RootCmd.Flags().BoolVar(&version, "version", false, "Display the current version of this CLI")
 
 	// commands
-	RootCmd.AddCommand(runCmd)
-	// RootCmd.AddCommand(grpcTestCmd)
+	RootCmd.AddCommand(scrapeCmd)
+	RootCmd.AddCommand(browserCmd)
 }

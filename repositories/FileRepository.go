@@ -187,3 +187,18 @@ func (fr *FileRepository) SaveThreadComments(threadID string, comments []*types.
 	}
 	return nil
 }
+
+func (fr *FileRepository) BlobExists(threadID, blobID string) (bool, error) {
+	blobPath := path.Join(fr.basePath, "data", "blob", threadID, blobID)
+	return utils.FileExists(blobPath)
+}
+
+func (fr *FileRepository) SaveBlob(nodePath, threadID, blobID string, blob []byte) error {
+	blobPath := path.Join(fr.basePath, "data", "blob", threadID, blobID)
+	err := utils.SaveBytesToFile(blobPath, blob)
+	if err != nil {
+		return err
+	}
+	publicFilename := path.Join(fr.basePath+"/archive"+nodePath, "blob", blobID)
+	return utils.SaveBytesToFile(publicFilename, blob)
+}

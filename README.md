@@ -24,4 +24,5 @@ The `archive` output is intended for "offline" browsing, while the `data` output
 
 - [x] Base scraper logic that downloads all entities
 - [x] Throttling logic to stay below the rate-limit line
+- [x] Export blobs as well
 - [ ] Archive browser app

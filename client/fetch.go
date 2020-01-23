@@ -114,6 +114,15 @@ func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, 
 	return qc.getBytes(exportThreadURL(threadID, exportType), token)
 }
 
+func (qc *QuipClient) getBlob(threadID, blobID string) ([]byte, error) {
+	qc.logger.Debug("Waiting for token")
+	token := qc.checkoutToken()
+	defer qc.checkinToken(token)
+
+	qc.logger.Debugf("Querying blob %s:%s", threadID, blobID)
+	return qc.getBytes(blobURL(threadID, blobID), token)
+}
+
 func (qc *QuipClient) getMap(url string, token Token) (map[string][]byte, error) {
 	rawBody, err := qc.getBytes(url, token)
 	if err != nil {

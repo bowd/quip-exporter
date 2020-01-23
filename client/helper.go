@@ -25,6 +25,7 @@ const (
 	CURRENT_USER_PATH           = "/users/current"
 	THREAD_COMMENTS_MASK        = "/messages/%s?count=100"
 	THREAD_COMMENTS_CURSOR_MASK = "/messages/%s?count=100&max_created_usec=%d"
+	BLOB_MASK                   = "/blob/%s/%s"
 )
 
 func batchURL(pathMask string, ids []string) string {
@@ -39,6 +40,10 @@ func currentUserURL() string {
 
 func exportThreadURL(threadID string, exportType string) string {
 	return BASE_URL + fmt.Sprintf(EXPORT_MASK, threadID, exportType)
+}
+
+func blobURL(threadID string, blobID string) string {
+	return BASE_URL + fmt.Sprintf(BLOB_MASK, threadID, blobID)
 }
 
 func threadCommentsURL(threadID string, cursor *uint64) string {

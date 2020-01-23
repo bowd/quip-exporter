@@ -37,10 +37,13 @@ func (node *ThreadNode) Children() []INode {
 	children := make([]INode, 0, 0)
 	children = append(
 		children,
-		NewThreadHTMLNode(node),
 		NewThreadCommentsNode(node),
 		NewUserNode(node.ctx, node.thread.Thread.AuthorID),
 	)
+
+	if !node.thread.IsChannel() {
+		children = append(children, NewThreadHTMLNode(node))
+	}
 
 	if node.thread.IsSlides() {
 		children = append(children, NewThreadSlidesNode(node))

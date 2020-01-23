@@ -16,7 +16,7 @@ import (
 	"github.com/bowd/quip-exporter/client"
 )
 
-var runCmd = &cobra.Command{
+var scrapeCmd = &cobra.Command{
 	Use:   "scrape",
 	Short: "Start scraper",
 	Long:  "Scrape Quip starting from the provided token's current user",
@@ -70,12 +70,12 @@ var runCmd = &cobra.Command{
 
 func init() {
 	// scraper
-	runCmd.Flags().StringArray("scraper.tokens", []string{}, "The list of tokens the scraper can use")
-	_ = viper.BindPFlag("scraper.tokens", runCmd.Flag("scraper.tokens"))
+	scrapeCmd.Flags().StringArray("scraper.tokens", []string{}, "The list of tokens the scraper can use")
+	_ = viper.BindPFlag("scraper.tokens", scrapeCmd.Flag("scraper.tokens"))
 
-	runCmd.Flags().StringArray("scraper.folders", []string{}, "The list of folders to start from")
-	_ = viper.BindPFlag("scraper.folders", runCmd.Flag("scraper.folders"))
+	scrapeCmd.Flags().StringArray("scraper.folders", []string{}, "The list of folders to start from")
+	_ = viper.BindPFlag("scraper.folders", scrapeCmd.Flag("scraper.folders"))
 
-	runCmd.Flags().Int("scraper.rps", 0, "Number of request / second / token")
-	_ = viper.BindPFlag("scraper.rps", runCmd.Flag("scraper.rps"))
+	scrapeCmd.Flags().Int("scraper.rps", 0, "Number of request / second / token")
+	_ = viper.BindPFlag("scraper.rps", scrapeCmd.Flag("scraper.rps"))
 }

@@ -26,4 +26,7 @@ type IRepository interface {
 
 	GetThreadComments(threadID string) ([]*types.QuipMessage, error)
 	SaveThreadComments(threadID string, comments []*types.QuipMessage) error
+
+	BlobExists(threadID string, blobID string) (bool, error)
+	SaveBlob(nodePath string, threadID, blobID string, blob []byte) error
 }

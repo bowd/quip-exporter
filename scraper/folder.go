@@ -61,7 +61,7 @@ func (node *FolderNode) Process(scraper *Scraper) error {
 	if err != nil && repositories.IsNotFoundError(err) {
 		folder, err = scraper.client.GetFolder(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
-			scraper.logger.Debugf("Ignoring Unauthorized repo:%s [%s]", node.id, node.path)
+			scraper.logger.Debugf("Ignoring Unauthorized folder:%s [%s]", node.id, node.path)
 			return nil
 		} else if err != nil {
 			return err
