@@ -174,5 +174,8 @@ func (qc *QuipClient) getBytes(url string, token Token) ([]byte, error) {
 	if resp.StatusCode == 503 {
 		return nil, RateLimitError{}
 	}
+	if resp.StatusCode == 404 {
+		return nil, DeletedError{}
+	}
 	return []byte(rawBody), nil
 }

@@ -12,7 +12,7 @@ type QuipUser struct {
 	PrivateFolderID   *string  `json:"private_folder_id"`
 	GroupFolderIDs    []string `json:"group_folder_ids"`
 	SharedFolderIDs   []string `json:"shared_folder_ids"`
-	Disabled          *string  `json:"disabled"`
+	Disabled          *bool    `json:"disabled"`
 	CreatedUsec       *uint64  `json:"created_usec"`
 }
 

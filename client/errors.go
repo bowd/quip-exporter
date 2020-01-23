@@ -21,3 +21,14 @@ func IsRateLimitError(err error) bool {
 	_, ok := err.(RateLimitError)
 	return ok
 }
+
+type DeletedError struct{}
+
+func (DeletedError) Error() string {
+	return "Item is deleted"
+}
+
+func IsDeletedError(err error) bool {
+	_, ok := err.(DeletedError)
+	return ok
+}

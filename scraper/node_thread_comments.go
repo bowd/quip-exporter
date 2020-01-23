@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
@@ -58,7 +59,13 @@ func (node *ThreadCommentsNode) Process(scraper *Scraper) error {
 	comments, err := scraper.repo.GetThreadComments(node.id)
 	if err != nil && repositories.IsNotFoundError(err) {
 		comments, err = scraper.client.GetThreadComments(node.id)
-		if err != nil {
+		if err != nil && client.IsUnauthorizedError(err) {
+			node.logger.Warn("skipping unauthorised")
+			return nil
+		} else if err != nil && client.IsDeletedError(err) {
+			node.logger.Warn("skipping deleted")
+			return nil
+		} else if err != nil {
 			node.logger.Errorln(err)
 			return err
 		}
