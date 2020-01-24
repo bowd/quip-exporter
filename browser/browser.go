@@ -9,9 +9,9 @@ type Config struct {
 
 func Run(config Config) {
 	r := gin.Default()
-	r.LoadHTMLGlob("public/*.html")        // load the built dist path
-	r.StaticFile("/", "public/index.html") // use the loaded source
-	r.Static("/static/", "dist/")
+	r.LoadHTMLGlob("frontend/dist/*.html")        // load the built dist path
+	r.StaticFile("/", "frontend/dist/index.html") // use the loaded source
+	r.Static("/static", "frontend/dist/")
 
 	if err := r.Run(config.Host + ":" + config.Port); err != nil {
 		panic(err)
