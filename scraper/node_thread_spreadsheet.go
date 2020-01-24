@@ -10,6 +10,7 @@ import (
 
 type ThreadSpreadsheetNode struct {
 	*ThreadNode
+	exists bool
 }
 
 func NewThreadSpreadsheetNode(parent *ThreadNode) interfaces.INode {
@@ -43,6 +44,9 @@ func (node ThreadSpreadsheetNode) Path() string {
 }
 
 func (node *ThreadSpreadsheetNode) Children() []interfaces.INode {
+	if !node.exists {
+		return []interfaces.INode{}
+	}
 	return []interfaces.INode{
 		NewArchiveNode(
 			node.path,
@@ -69,8 +73,14 @@ func (node *ThreadSpreadsheetNode) Process(repo interfaces.IRepository, quip int
 			node.logger.Errorln(err)
 			return err
 		}
-		return repo.SaveNodeRaw(node, data)
+		if err := repo.SaveNodeRaw(node, data); err != nil {
+			node.logger.Errorln(err)
+			return err
+		} else {
+			node.exists = true
+		}
 	} else {
+		node.exists = true
 		node.logger.Debugf("already exported")
 	}
 	return nil

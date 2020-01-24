@@ -98,7 +98,8 @@ func (fr *FileRepository) GetThreadComments(node interfaces.INode) ([]*types.Qui
 func (fr *FileRepository) MakeArchiveCopy(source, dest interfaces.INode) error {
 	sourcePath := path.Join(fr.basePath, source.Path())
 	destPath := path.Join(fr.basePath, dest.Path())
-	err := utils.EnsureDir(path.Base(destPath))
+	fr.logger.Infof("%s -> %s", sourcePath, destPath)
+	err := utils.EnsureDir(path.Dir(destPath))
 	if err != nil {
 		return err
 	}

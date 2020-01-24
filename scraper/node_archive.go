@@ -1,9 +1,11 @@
 package scraper
 
 import (
+	"context"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"path"
 )
 
@@ -14,10 +16,12 @@ type ArchiveNode struct {
 }
 
 func NewArchiveNode(path, id, filename string, source interfaces.INode) interfaces.INode {
+	wg, _ := errgroup.WithContext(context.Background())
 	return &ArchiveNode{
 		BaseNode: &BaseNode{
 			id:   id,
 			path: path,
+			wg:   wg,
 			logger: logrus.WithField("module", types.NodeTypes.Archive).
 				WithField("source", source.Type).
 				WithField("filename", filename).

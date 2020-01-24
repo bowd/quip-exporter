@@ -12,7 +12,7 @@ import (
 type BlobNode struct {
 	*BaseNode
 	thread *types.QuipThread
-	blob   []byte
+	exists bool
 }
 
 func NewBlobNode(parent *ThreadNode, blobID string) interfaces.INode {
@@ -44,6 +44,9 @@ func (node BlobNode) Path() string {
 }
 
 func (node *BlobNode) Children() []interfaces.INode {
+	if !node.exists {
+		return []interfaces.INode{}
+	}
 	return []interfaces.INode{
 		NewArchiveNode(
 			path.Join(node.path, "blob", node.thread.Thread.ID),
@@ -58,7 +61,6 @@ func (node *BlobNode) Process(repo interfaces.IRepository, quip interfaces.IQuip
 	if node.ctx.Err() != nil {
 		return nil
 	}
-	var blob []byte
 
 	if exists, err := repo.NodeExists(node); err == nil && !exists {
 		if blob, err := quip.GetBlob(node.thread.Thread.ID, node.id); err != nil {
@@ -70,17 +72,18 @@ func (node *BlobNode) Process(repo interfaces.IRepository, quip interfaces.IQuip
 			}
 			return err
 		} else {
-			node.blob = blob
-		}
-		if err := repo.SaveNodeRaw(node, node.blob); err != nil {
-			return err
+			if err := repo.SaveNodeRaw(node, blob); err != nil {
+				return err
+			} else {
+				node.exists = true
+			}
 		}
 	} else if err != nil {
 		node.logger.Errorln(err)
 		return err
 	} else {
+		node.exists = true
 		node.logger.Debugf("found in repo")
 	}
-	node.blob = blob
 	return nil
 }

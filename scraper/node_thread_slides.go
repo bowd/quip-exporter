@@ -10,6 +10,7 @@ import (
 
 type ThreadSlidesNode struct {
 	*ThreadNode
+	exists bool
 }
 
 func NewThreadSlidesNode(parent *ThreadNode) interfaces.INode {
@@ -43,6 +44,9 @@ func (node ThreadSlidesNode) Path() string {
 }
 
 func (node *ThreadSlidesNode) Children() []interfaces.INode {
+	if !node.exists {
+		return []interfaces.INode{}
+	}
 	return []interfaces.INode{
 		NewArchiveNode(
 			node.path,
@@ -69,8 +73,14 @@ func (node *ThreadSlidesNode) Process(repo interfaces.IRepository, quip interfac
 			node.logger.Errorln(err)
 			return err
 		}
-		return repo.SaveNodeRaw(node, data)
+		if err := repo.SaveNodeRaw(node, data); err != nil {
+			node.logger.Errorln(err)
+			return err
+		} else {
+			node.exists = true
+		}
 	} else {
+		node.exists = true
 		node.logger.Debugf("already exported")
 	}
 	return nil

@@ -11,6 +11,7 @@ import (
 
 type ThreadHTMLNode struct {
 	*ThreadNode
+	exists bool
 }
 
 var blobRegexp *regexp.Regexp = regexp.MustCompile("blob/([0-9a-zA-Z_-]+)/([0-9a-zA-z_-]+)")
@@ -46,7 +47,9 @@ func (node ThreadHTMLNode) Path() string {
 }
 
 func (node *ThreadHTMLNode) Children() []interfaces.INode {
-	// return []interfaces.INode{}
+	if !node.exists {
+		return []interfaces.INode{}
+	}
 	matches := blobRegexp.FindAllStringSubmatch(node.thread.HTML, -1)
 	children := make([]interfaces.INode, 0, 0)
 	for _, match := range matches {
@@ -77,12 +80,14 @@ func (node *ThreadHTMLNode) Process(repo interfaces.IRepository, quip interfaces
 	}
 
 	if !isExported {
-		err := repo.SaveNodeRaw(node, []byte(node.thread.HTML))
-		if err != nil {
+		if err := repo.SaveNodeRaw(node, []byte(node.thread.HTML)); err != nil {
 			node.logger.Errorln(err)
+			return err
+		} else {
+			node.exists = true
 		}
-		return err
 	} else {
+		node.exists = true
 		node.logger.Debugf("already exported")
 	}
 
