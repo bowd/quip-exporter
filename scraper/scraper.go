@@ -3,6 +3,7 @@ package scraper
 import (
 	"context"
 	"github.com/bowd/quip-exporter/interfaces"
+	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"sync"
@@ -49,8 +50,8 @@ func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 	done <- true
 }
 
-func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
-	err := node.Process(scraper)
+func (scraper *Scraper) scrape(ctx context.Context, node interfaces.INode) error {
+	err := node.Process(scraper.repo, scraper.client)
 	if err != nil {
 		return err
 	}
@@ -63,15 +64,15 @@ func (scraper *Scraper) scrape(ctx context.Context, node INode) error {
 	return err
 }
 
-func (scraper *Scraper) queue(ctx context.Context, parent, child INode) {
+func (scraper *Scraper) queue(ctx context.Context, parent, child interfaces.INode) {
 	if !scraper.shouldSkip(child) {
 		go scraper.incrementQueued(child)
 		parent.Go(func() error { return scraper.scrape(ctx, child) })
 	}
 }
 
-func (scraper *Scraper) shouldSkip(child INode) bool {
-	if child.Type() == NodeTypes.User {
+func (scraper *Scraper) shouldSkip(child interfaces.INode) bool {
+	if child.Type() == types.NodeTypes.User {
 		key := child.Type() + "::" + child.ID()
 		_, seen := scraper.seenMap.Load(key)
 		if seen {

@@ -3,10 +3,12 @@ package scraper
 import (
 	"context"
 	"github.com/bowd/quip-exporter/client"
+	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 type UserNode struct {
@@ -14,11 +16,11 @@ type UserNode struct {
 	user *types.QuipUser
 }
 
-func NewUserNode(ctx context.Context, id string) INode {
+func NewUserNode(ctx context.Context, id string) interfaces.INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &UserNode{
 		BaseNode: &BaseNode{
-			logger: logrus.WithField("module", NodeTypes.User).
+			logger: logrus.WithField("module", types.NodeTypes.User).
 				WithField("id", id),
 			id:  id,
 			wg:  wg,
@@ -27,24 +29,32 @@ func NewUserNode(ctx context.Context, id string) INode {
 	}
 }
 
-func (node *UserNode) Type() NodeType {
-	return NodeTypes.User
+func (node *UserNode) Type() types.NodeType {
+	return types.NodeTypes.User
 }
 
-func (node *UserNode) Children() []INode {
-	return []INode{}
+func (node *UserNode) ID() string {
+	return node.id
 }
 
-func (node *UserNode) Process(scraper *Scraper) error {
+func (node *UserNode) Path() string {
+	return path.Join("data", "users", node.id+".json")
+}
+
+func (node *UserNode) Children() []interfaces.INode {
+	return []interfaces.INode{}
+}
+
+func (node *UserNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 
 	var user *types.QuipUser
 	var err error
-	user, err = scraper.repo.GetUser(node.id)
+	user, err = repo.GetUser(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		user, err = scraper.client.GetUser(node.id)
+		user, err = quip.GetUser(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
 			node.logger.Warn("skipping unauthorized")
 			return nil
@@ -52,7 +62,7 @@ func (node *UserNode) Process(scraper *Scraper) error {
 			node.logger.Errorln(err)
 			return err
 		}
-		if err := scraper.repo.SaveUser(user); err != nil {
+		if err := repo.SaveNodeJSON(node, user); err != nil {
 			node.logger.Errorln(err)
 			return err
 		}

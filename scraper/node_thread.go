@@ -3,10 +3,12 @@ package scraper
 import (
 	"context"
 	"github.com/bowd/quip-exporter/client"
+	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 type ThreadNode struct {
@@ -14,11 +16,11 @@ type ThreadNode struct {
 	thread *types.QuipThread
 }
 
-func NewThreadNode(ctx context.Context, path, id string) INode {
+func NewThreadNode(ctx context.Context, path, id string) interfaces.INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &ThreadNode{
 		BaseNode: &BaseNode{
-			logger: logrus.WithField("module", NodeTypes.Thread).
+			logger: logrus.WithField("module", types.NodeTypes.Thread).
 				WithField("id", id).
 				WithField("path", path),
 			id:   id,
@@ -29,15 +31,19 @@ func NewThreadNode(ctx context.Context, path, id string) INode {
 	}
 }
 
-func (node ThreadNode) Type() NodeType {
-	return NodeTypes.Thread
+func (node ThreadNode) Path() string {
+	return path.Join("data", "threads", node.id+".json")
 }
 
-func (node *ThreadNode) Children() []INode {
+func (node ThreadNode) Type() types.NodeType {
+	return types.NodeTypes.Thread
+}
+
+func (node *ThreadNode) Children() []interfaces.INode {
 	if node.thread == nil {
-		return []INode{}
+		return []interfaces.INode{}
 	}
-	children := make([]INode, 0, 0)
+	children := make([]interfaces.INode, 0, 0)
 	children = append(
 		children,
 		NewThreadCommentsNode(node),
@@ -63,7 +69,7 @@ func (node *ThreadNode) Children() []INode {
 	return children
 }
 
-func (node *ThreadNode) Process(scraper *Scraper) error {
+func (node *ThreadNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -71,9 +77,9 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 	var thread *types.QuipThread
 	var err error
 
-	thread, err = scraper.repo.GetThread(node.id)
+	thread, err = repo.GetThread(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		thread, err = scraper.client.GetThread(node.id)
+		thread, err = quip.GetThread(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
 			node.logger.Warn("skipping unauthorised")
 			return nil
@@ -81,7 +87,7 @@ func (node *ThreadNode) Process(scraper *Scraper) error {
 			node.logger.Errorln(err)
 			return err
 		}
-		if err := scraper.repo.SaveThread(thread); err != nil {
+		if err := repo.SaveNodeJSON(node, thread); err != nil {
 			node.logger.Errorln(err)
 			return err
 		}

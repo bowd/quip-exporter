@@ -1,21 +1,23 @@
 package scraper
 
 import (
-	"fmt"
+	"github.com/bowd/quip-exporter/interfaces"
+	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 type ThreadDocumentNode struct {
 	*ThreadNode
 }
 
-func NewThreadDocumentNode(parent *ThreadNode) INode {
+func NewThreadDocumentNode(parent *ThreadNode) interfaces.INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadDocumentNode{
 		ThreadNode: &ThreadNode{
 			BaseNode: &BaseNode{
-				logger: logrus.WithField("module", NodeTypes.ThreadDocument).
+				logger: logrus.WithField("module", types.NodeTypes.ThreadDocument).
 					WithField("id", parent.id).
 					WithField("path", parent.path),
 				path: parent.path,
@@ -28,31 +30,46 @@ func NewThreadDocumentNode(parent *ThreadNode) INode {
 	}
 }
 
-func (node *ThreadDocumentNode) ID() string {
-	return fmt.Sprintf("thread:%s:document [%s]", node.id, node.path)
+func (node ThreadDocumentNode) Type() types.NodeType {
+	return types.NodeTypes.ThreadDocument
 }
 
-func (node *ThreadDocumentNode) Children() []INode {
-	return []INode{}
+func (node ThreadDocumentNode) ID() string {
+	return node.id + "/doc"
 }
 
-func (node *ThreadDocumentNode) Process(scraper *Scraper) error {
+func (node ThreadDocumentNode) Path() string {
+	return path.Join("data", "docs", node.id+".docx")
+}
+
+func (node *ThreadDocumentNode) Children() []interfaces.INode {
+	return []interfaces.INode{
+		NewArchiveNode(
+			node.path,
+			node.id,
+			node.thread.Filename()+".docx",
+			node,
+		),
+	}
+}
+
+func (node *ThreadDocumentNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
-	isExported, err := scraper.repo.HasExportedDocument(node.id)
+	isExported, err := repo.NodeExists(node)
 	if err != nil {
 		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
-		pdf, err := scraper.client.ExportThreadDocument(node.id)
+		data, err := quip.ExportThreadDocument(node.id)
 		if err != nil {
 			node.logger.Errorln(err)
 			return err
 		}
-		return scraper.repo.SaveThreadDocument(node.path, node.thread, pdf)
+		return repo.SaveNodeRaw(node, data)
 	} else {
 		node.logger.Debugf("already exported")
 	}

@@ -1,12 +1,13 @@
 package scraper
 
 import (
-	"fmt"
 	"github.com/bowd/quip-exporter/client"
+	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 type ThreadCommentsNode struct {
@@ -14,12 +15,12 @@ type ThreadCommentsNode struct {
 	comments []*types.QuipMessage
 }
 
-func NewThreadCommentsNode(parent *ThreadNode) INode {
+func NewThreadCommentsNode(parent *ThreadNode) interfaces.INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadCommentsNode{
 		ThreadNode: &ThreadNode{
 			BaseNode: &BaseNode{
-				logger: logrus.WithField("module", NodeTypes.ThreadComments).
+				logger: logrus.WithField("module", types.NodeTypes.ThreadComments).
 					WithField("id", parent.id).
 					WithField("path", parent.path),
 				path: parent.path,
@@ -32,16 +33,20 @@ func NewThreadCommentsNode(parent *ThreadNode) INode {
 	}
 }
 
-func (node ThreadCommentsNode) Type() NodeType {
-	return NodeTypes.ThreadComments
+func (node ThreadCommentsNode) Type() types.NodeType {
+	return types.NodeTypes.ThreadComments
 }
 
-func (node *ThreadCommentsNode) ID() string {
-	return fmt.Sprintf("thread:%s:comments [%s]", node.id, node.path)
+func (node ThreadCommentsNode) ID() string {
+	return node.id + "/comments"
 }
 
-func (node *ThreadCommentsNode) Children() []INode {
-	children := make([]INode, 0, 10)
+func (node ThreadCommentsNode) Path() string {
+	return path.Join("data", "comments", node.id+".json")
+}
+
+func (node *ThreadCommentsNode) Children() []interfaces.INode {
+	children := make([]interfaces.INode, 0, 10)
 	for _, message := range node.comments {
 		children = append(
 			children,
@@ -51,14 +56,14 @@ func (node *ThreadCommentsNode) Children() []INode {
 	return children
 }
 
-func (node *ThreadCommentsNode) Process(scraper *Scraper) error {
+func (node *ThreadCommentsNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 
-	comments, err := scraper.repo.GetThreadComments(node.id)
+	comments, err := repo.GetThreadComments(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		comments, err = scraper.client.GetThreadComments(node.id)
+		comments, err = quip.GetThreadComments(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
 			node.logger.Warn("skipping unauthorised")
 			return nil
@@ -69,7 +74,7 @@ func (node *ThreadCommentsNode) Process(scraper *Scraper) error {
 			node.logger.Errorln(err)
 			return err
 		}
-		if err := scraper.repo.SaveThreadComments(node.id, comments); err != nil {
+		if err := repo.SaveNodeJSON(node, comments); err != nil {
 			node.logger.Errorln(err)
 			return err
 		}

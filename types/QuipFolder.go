@@ -31,5 +31,9 @@ func (fc FolderChild) IsFolder() bool {
 }
 
 func (qf QuipFolder) PathSegment() string {
-	return sanitize.Path(qf.Folder.Title)
+	segment := sanitize.Path(qf.Folder.Title)
+	if segment == "" {
+		return qf.Folder.ID
+	}
+	return segment
 }

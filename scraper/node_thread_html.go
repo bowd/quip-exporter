@@ -1,9 +1,11 @@
 package scraper
 
 import (
-	"fmt"
+	"github.com/bowd/quip-exporter/interfaces"
+	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 	"regexp"
 )
 
@@ -13,12 +15,12 @@ type ThreadHTMLNode struct {
 
 var blobRegexp *regexp.Regexp = regexp.MustCompile("blob/([0-9a-zA-Z_-]+)/([0-9a-zA-z_-]+)")
 
-func NewThreadHTMLNode(parent *ThreadNode) INode {
+func NewThreadHTMLNode(parent *ThreadNode) interfaces.INode {
 	wg, ctx := errgroup.WithContext(parent.ctx)
 	return &ThreadHTMLNode{
 		ThreadNode: &ThreadNode{
 			BaseNode: &BaseNode{
-				logger: logrus.WithField("module", NodeTypes.ThreadHTML).
+				logger: logrus.WithField("module", types.NodeTypes.ThreadHTML).
 					WithField("id", parent.id).
 					WithField("path", parent.path),
 				path: parent.path,
@@ -31,34 +33,51 @@ func NewThreadHTMLNode(parent *ThreadNode) INode {
 	}
 }
 
+func (node ThreadHTMLNode) Type() types.NodeType {
+	return types.NodeTypes.ThreadHTML
+}
+
 func (node *ThreadHTMLNode) ID() string {
-	return fmt.Sprintf("thread:%s:html [%s]", node.id, node.path)
+	return node.id + "/html"
 }
 
-func (node *ThreadHTMLNode) Children() []INode {
-	return []INode{}
-	// matches := blobRegexp.FindAllStringSubmatch(node.thread.HTML, -1)
-	// children := make([]INode, 0, 0)
-	// for _, match := range matches {
-	// 	if match[1] == node.id {
-	// 		children = append(children, NewBlobNode(node.ThreadNode, match[2]))
-	// 	}
-	// }
-	// return children
+func (node ThreadHTMLNode) Path() string {
+	return path.Join("data", "html", node.id+".html")
 }
 
-func (node *ThreadHTMLNode) Process(scraper *Scraper) error {
+func (node *ThreadHTMLNode) Children() []interfaces.INode {
+	// return []interfaces.INode{}
+	matches := blobRegexp.FindAllStringSubmatch(node.thread.HTML, -1)
+	children := make([]interfaces.INode, 0, 0)
+	for _, match := range matches {
+		if match[1] == node.id {
+			children = append(children, NewBlobNode(node.ThreadNode, match[2]))
+		}
+	}
+	children = append(
+		children,
+		NewArchiveNode(
+			node.path,
+			node.id,
+			node.thread.Filename()+".html",
+			node,
+		),
+	)
+	return children
+}
+
+func (node *ThreadHTMLNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
-	isExported, err := scraper.repo.HasExportedHTML(node.id)
+	isExported, err := repo.NodeExists(node)
 	if err != nil {
 		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
-		err := scraper.repo.SaveThreadHTML(node.path, node.thread)
+		err := repo.SaveNodeRaw(node, []byte(node.thread.HTML))
 		if err != nil {
 			node.logger.Errorln(err)
 		}

@@ -2,10 +2,12 @@ package scraper
 
 import (
 	"context"
+	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 type CurrentUserNode struct {
@@ -13,11 +15,11 @@ type CurrentUserNode struct {
 	currentUser *types.QuipUser
 }
 
-func NewCurrentUserNode(ctx context.Context) INode {
+func NewCurrentUserNode(ctx context.Context) interfaces.INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &CurrentUserNode{
 		BaseNode: &BaseNode{
-			logger: logrus.WithField("module", NodeTypes.CurrentUser),
+			logger: logrus.WithField("module", types.NodeTypes.CurrentUser),
 			path:   "/",
 			wg:     wg,
 			ctx:    ctx,
@@ -25,12 +27,20 @@ func NewCurrentUserNode(ctx context.Context) INode {
 	}
 }
 
-func (node CurrentUserNode) Type() NodeType {
-	return NodeTypes.CurrentUser
+func (node CurrentUserNode) Type() types.NodeType {
+	return types.NodeTypes.CurrentUser
 }
 
-func (node CurrentUserNode) Children() []INode {
-	children := make([]INode, 0, 0)
+func (node CurrentUserNode) ID() string {
+	return "root"
+}
+
+func (node CurrentUserNode) Path() string {
+	return path.Join("data", "root.json")
+}
+
+func (node CurrentUserNode) Children() []interfaces.INode {
+	children := make([]interfaces.INode, 0, 0)
 	for _, folderID := range node.currentUser.Folders() {
 		children = append(children, NewFolderNode(node.ctx, node.path, folderID))
 	}
@@ -38,17 +48,17 @@ func (node CurrentUserNode) Children() []INode {
 	return children
 }
 
-func (node *CurrentUserNode) Process(scraper *Scraper) error {
+func (node *CurrentUserNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	var currentUser *types.QuipUser
 	var err error
-	currentUser, err = scraper.repo.GetCurrentUser()
+	currentUser, err = repo.GetCurrentUser(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		currentUser, err = scraper.client.GetCurrentUser()
+		currentUser, err = quip.GetCurrentUser()
 		if err != nil {
 			node.logger.Errorln(err)
 			return err
 		}
-		if err := scraper.repo.SaveCurrentUser(currentUser); err != nil {
+		if err := repo.SaveNodeJSON(node, currentUser); err != nil {
 			node.logger.Errorln(err)
 			return err
 		}

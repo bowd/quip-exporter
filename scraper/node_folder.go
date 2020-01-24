@@ -3,6 +3,7 @@ package scraper
 import (
 	"context"
 	"github.com/bowd/quip-exporter/client"
+	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
@@ -15,11 +16,11 @@ type FolderNode struct {
 	folder *types.QuipFolder
 }
 
-func NewFolderNode(ctx context.Context, path, id string) INode {
+func NewFolderNode(ctx context.Context, path, id string) interfaces.INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &FolderNode{
 		BaseNode: &BaseNode{
-			logger: logrus.WithField("module", NodeTypes.Folder).
+			logger: logrus.WithField("module", types.NodeTypes.Folder).
 				WithField("id", id).
 				WithField("path", path),
 			id:   id,
@@ -30,16 +31,20 @@ func NewFolderNode(ctx context.Context, path, id string) INode {
 	}
 }
 
-func (node FolderNode) Type() NodeType {
-	return NodeTypes.Folder
+func (node FolderNode) Path() string {
+	return path.Join("data", "folders", node.id+".json")
 }
 
-func (node FolderNode) Children() []INode {
+func (node FolderNode) Type() types.NodeType {
+	return types.NodeTypes.Folder
+}
+
+func (node FolderNode) Children() []interfaces.INode {
 	if node.folder == nil {
-		return []INode{}
+		return []interfaces.INode{}
 	}
 
-	children := make([]INode, 0, 0)
+	children := make([]interfaces.INode, 0, 0)
 	nodePath := path.Join(node.path, node.folder.PathSegment())
 	for _, child := range node.folder.Children {
 		if child.IsThread() {
@@ -53,16 +58,16 @@ func (node FolderNode) Children() []INode {
 	return children
 }
 
-func (node *FolderNode) Process(scraper *Scraper) error {
+func (node *FolderNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 	var folder *types.QuipFolder
 	var err error
 
-	folder, err = scraper.repo.GetFolder(node.id)
+	folder, err = repo.GetFolder(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		folder, err = scraper.client.GetFolder(node.id)
+		folder, err = quip.GetFolder(node.id)
 		if err != nil && client.IsUnauthorizedError(err) {
 			node.logger.Warn("skipping unauthorised")
 			return nil
@@ -70,7 +75,7 @@ func (node *FolderNode) Process(scraper *Scraper) error {
 			node.logger.Errorln(err)
 			return err
 		}
-		if err := scraper.repo.SaveFolder(folder); err != nil {
+		if err := repo.SaveNodeJSON(node, folder); err != nil {
 			node.logger.Errorln(err)
 			return err
 		}
