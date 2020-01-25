@@ -3,11 +3,9 @@ module github.com/bowd/quip-exporter
 go 1.13
 
 require (
-	github.com/boltdb/bolt v1.3.1
-	github.com/davecgh/go-spew v1.1.1
-	github.com/elazarl/go-bindata-assetfs v1.0.0 // indirect
+	github.com/allegro/bigcache v1.2.1
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
-	github.com/evnix/boltdbweb v0.0.0-20191029203843-5b16e6623bd9 // indirect
+	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-gonic/gin v1.5.0
 	github.com/imdario/mergo v0.3.8
 	github.com/kennygrant/sanitize v1.2.4

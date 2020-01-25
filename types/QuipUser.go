@@ -23,6 +23,7 @@ func (qu QuipUser) Folders() []string {
 		qu.ArchiveFolderID,
 		qu.DesktopFolderID,
 		qu.PrivateFolderID,
+		qu.StarredFolderID,
 	)
 	for _, folder := range qu.GroupFolderIDs {
 		folders = append(folders, folder)

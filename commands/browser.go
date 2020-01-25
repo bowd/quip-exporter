@@ -1,13 +1,16 @@
 package commands
 
 import (
+	"github.com/allegro/bigcache"
 	"github.com/bowd/quip-exporter/browser"
+	"github.com/bowd/quip-exporter/repositories"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var browserCmd = &cobra.Command{
@@ -21,10 +24,19 @@ var browserCmd = &cobra.Command{
 		signal.Notify(stopChan, syscall.SIGINT)
 		signal.Notify(stopChan, syscall.SIGTERM)
 
+		repo := repositories.NewFileRepository(
+			viper.GetString("repo.basePath"),
+		)
+		// Todo: Config cache through config.yml
+		cache, err := repositories.NewCacheRepository(repo, bigcache.DefaultConfig(10*time.Minute))
+		if err != nil {
+			logger.Fatal(err)
+			return
+		}
 		go browser.Run(browser.Config{
 			Port: viper.GetString("browser.port"),
 			Host: viper.GetString("browser.host"),
-		})
+		}, cache)
 
 		cleanup := func() {
 			// Cleanup here

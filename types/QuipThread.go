@@ -6,10 +6,10 @@ import (
 )
 
 type QuipThread struct {
-	Thread          ThreadInfo
-	HTML            string
-	SharedFolderIDs []string `json:"shared_folder_ids"`
-	UserIDs         []string `json:"user_ids"`
+	Thread          ThreadInfo `json:"thread"`
+	HTML            string     `json:"html"`
+	SharedFolderIDs []string   `json:"shared_folder_ids"`
+	UserIDs         []string   `json:"user_ids"`
 }
 
 type ThreadInfo struct {
