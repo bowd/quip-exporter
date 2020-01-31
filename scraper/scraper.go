@@ -11,6 +11,7 @@ import (
 
 type Scraper struct {
 	client        interfaces.IQuipClient
+	blacklist     map[types.NodeType]bool
 	done          chan bool
 	wg            *errgroup.Group
 	logger        *logrus.Entry
@@ -23,13 +24,18 @@ type Scraper struct {
 	}
 }
 
-func New(client interfaces.IQuipClient, repo interfaces.IRepository) *Scraper {
+func New(client interfaces.IQuipClient, repo interfaces.IRepository, _blacklist []string) *Scraper {
+	blacklist := make(map[types.NodeType]bool)
+	for _, node := range _blacklist {
+		blacklist[node] = true
+	}
 	return &Scraper{
 		logger:        logrus.WithField("module", "quip-scraper"),
 		client:        client,
 		repo:          repo,
 		progressMutex: &sync.Mutex{},
 		seenMap:       &sync.Map{},
+		blacklist:     blacklist,
 		progress: struct {
 			queued map[string]int
 			done   map[string]int
@@ -72,7 +78,9 @@ func (scraper *Scraper) queue(ctx context.Context, parent, child interfaces.INod
 }
 
 func (scraper *Scraper) shouldSkip(child interfaces.INode) bool {
-	if child.Type() == types.NodeTypes.User {
+	if scraper.blacklist[child.Type()] == true {
+		return true
+	} else if child.Type() == types.NodeTypes.User {
 		key := child.Type() + "::" + child.ID()
 		_, seen := scraper.seenMap.Load(key)
 		if seen {
@@ -84,5 +92,4 @@ func (scraper *Scraper) shouldSkip(child interfaces.INode) bool {
 	} else {
 		return false
 	}
-
 }

@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"github.com/bowd/quip-exporter/path"
 	"github.com/bowd/quip-exporter/scraper"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/gin-gonic/gin"
@@ -19,22 +20,43 @@ func rootHandler(c *gin.Context) {
 
 func foldersHandler(c *gin.Context) {
 	folderIDs := strings.Split(c.Query("ids"), ",")
-	response := make(map[string]*types.QuipFolder)
+	response := make(map[string]FolderResponse)
 	for _, folderID := range folderIDs {
 		node := scraper.NewFolderNode(c, "/", folderID)
-		folder, _ := repo.GetFolder(node)
-		response[folderID] = folder
+		folder, err := repo.GetFolder(node)
+		if err != nil {
+			continue
+		}
+		folderPath, err := path.GetPathToFolder(c, folder, repo)
+		if err != nil {
+			continue
+
+		}
+		response[folderID] = FolderResponse{
+			QuipFolder: folder,
+			Path:       folderPath,
+		}
 	}
 	c.JSON(200, response)
 }
 
 func threadsHandler(c *gin.Context) {
 	threadIDs := strings.Split(c.Query("ids"), ",")
-	response := make(map[string]*types.QuipThread)
+	response := make(map[string]ThreadResponse)
 	for _, threadID := range threadIDs {
 		node := scraper.NewThreadNode(c, "/", threadID)
-		thread, _ := repo.GetThread(node)
-		response[threadID] = thread
+		thread, err := repo.GetThread(node)
+		if err != nil {
+			continue
+		}
+		threadPath, err := path.GetPathToThread(c, thread, repo)
+		if err != nil {
+			continue
+		}
+		response[threadID] = ThreadResponse{
+			QuipThread: thread,
+			Path:       threadPath,
+		}
 	}
 	c.JSON(200, response)
 }
@@ -45,7 +67,7 @@ func commentsHandler(c *gin.Context) {
 	node := scraper.NewThreadCommentsNode(thread.(*scraper.ThreadNode))
 	comments, err := repo.GetThreadComments(node)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(200, comments)

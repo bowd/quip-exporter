@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/parnurzeal/gorequest"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -161,4 +163,27 @@ func (qc *QuipClient) GetThreadComments(threadID string) ([]*types.QuipMessage, 
 
 func (qc *QuipClient) GetBlob(threadID, blobID string) ([]byte, error) {
 	return qc.getBlob(threadID, blobID)
+}
+
+func (qc *QuipClient) ExportUserPhoto(url string) ([]byte, error) {
+	resp, data, errs := gorequest.New().Get(url).Retry(
+		5,
+		250*time.Millisecond,
+		http.StatusBadRequest,
+		http.StatusInternalServerError,
+	).End()
+	if errs != nil {
+		qc.logger.Debug(resp)
+		qc.logger.Error(data)
+		qc.logger.Error(errs)
+		return nil, errs[0]
+	}
+	if resp == nil {
+		qc.logger.Debug(resp)
+		qc.logger.Error(data)
+		qc.logger.Error(errs)
+		return nil, fmt.Errorf("response is nil")
+	}
+
+	return []byte(data), nil
 }

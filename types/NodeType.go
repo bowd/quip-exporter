@@ -14,6 +14,8 @@ var NodeTypes = struct {
 	ThreadSlides      NodeType
 	ThreadSpreadsheet NodeType
 	Archive           NodeType
+	UserPicture       NodeType
+	ThreadIndex       NodeType
 }{
 	CurrentUser:       "current-user",
 	Blob:              "blob",
@@ -26,4 +28,6 @@ var NodeTypes = struct {
 	ThreadSlides:      "thread-slides",
 	ThreadSpreadsheet: "thread-spreadsheet",
 	Archive:           "archive",
+	UserPicture:       "user-picture",
+	ThreadIndex:       "thread-index",
 }

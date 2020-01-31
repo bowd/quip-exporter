@@ -42,6 +42,11 @@ func (node *UserNode) Path() string {
 }
 
 func (node *UserNode) Children() []interfaces.INode {
+	if node.user != nil && node.user.ProfilePictureURL != nil {
+		return []interfaces.INode{
+			NewUserPictureNode(node),
+		}
+	}
 	return []interfaces.INode{}
 }
 

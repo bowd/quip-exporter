@@ -48,7 +48,7 @@ var scrapeCmd = &cobra.Command{
 			return
 		}
 
-		scraper := scraper.New(quipClient, repo)
+		scraper := scraper.New(quipClient, repo, viper.GetStringSlice("scraper.blacklist"))
 		go scraper.Run(ctx, doneChan)
 
 		cleanup := func() {
