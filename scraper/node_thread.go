@@ -69,6 +69,10 @@ func (node *ThreadNode) Children() []interfaces.INode {
 	return children
 }
 
+func (node ThreadNode) ChildrenAfter() []interfaces.INode {
+	return []interfaces.INode{}
+}
+
 func (node *ThreadNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
 	if node.ctx.Err() != nil {
 		return nil

@@ -38,6 +38,7 @@ var scrapeCmd = &cobra.Command{
 		)
 		quipClient, err := client.New(
 			viper.GetString("scraper.token"),
+			viper.GetString("scraper.company-id"),
 			viper.GetInt("scraper.tokenConcurrency"),
 			viper.GetInt("scraper.rps"),
 			viper.GetDuration("scraper.batch.wait"),

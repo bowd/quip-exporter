@@ -13,6 +13,7 @@ import (
 
 type QuipClient struct {
 	token           string
+	companyID       string
 	logger          *logrus.Entry
 	rps             int
 	batchWait       time.Duration
@@ -50,9 +51,10 @@ const (
 	UserBatch   BatchType = "UserBatch"
 )
 
-func New(token string, tokenConcurrency, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
+func New(token, companyID string, tokenConcurrency, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
 	qc := &QuipClient{
 		token:            token,
+		companyID:        companyID,
 		tokenConcurrency: tokenConcurrency,
 		logger:           logrus.WithField("module", "quip-client"),
 		rps:              rps,

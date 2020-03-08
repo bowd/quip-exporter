@@ -66,21 +66,21 @@ func (qc *QuipClient) getFolders(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(FOLDERS_MASK, ids), token)
+	return qc.getMap(batchURL(FoldersMask, qc.companyID, ids), token)
 }
 
 func (qc *QuipClient) getThreads(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(THREADS_MASK, ids), token)
+	return qc.getMap(batchURL(ThreadsMask, qc.companyID, ids), token)
 }
 
 func (qc *QuipClient) getUsers(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(USERS_MASK, ids), token)
+	return qc.getMap(batchURL(UsersMask, qc.companyID, ids), token)
 }
 
 func (qc *QuipClient) getCurrentUser() ([]byte, error) {
@@ -97,7 +97,7 @@ func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, 
 	allComments := make([]*types.QuipMessage, 0, 10)
 	var cursor *uint64
 	for {
-		data, err := qc.getBytes(threadCommentsURL(threadID, cursor), token)
+		data, err := qc.getBytes(threadCommentsURL(threadID, cursor, qc.companyID), token)
 		if err != nil {
 			return nil, err
 		}
@@ -120,14 +120,14 @@ func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, 
 func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
-	return qc.getBytes(exportThreadURL(threadID, exportType), token)
+	return qc.getBytes(exportThreadURL(threadID, exportType, qc.companyID), token)
 }
 
 func (qc *QuipClient) getBlob(threadID, blobID string) ([]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getBytes(blobURL(threadID, blobID), token)
+	return qc.getBytes(blobURL(threadID, blobID, qc.companyID), token)
 }
 
 func (qc *QuipClient) getMap(url string, token Token) (map[string][]byte, error) {

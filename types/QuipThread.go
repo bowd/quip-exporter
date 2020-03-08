@@ -42,3 +42,7 @@ func (qt QuipThread) IsChannel() bool {
 func (qt QuipThread) IsDocument() bool {
 	return qt.Thread.Type == "document"
 }
+
+func (qt *QuipThread) InjectBlobHost(blobHost string) {
+	qt.HTML = strings.Replace(qt.HTML, "src='/blob", "src='"+blobHost+"/blob", -1)
+}

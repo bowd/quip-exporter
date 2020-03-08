@@ -34,8 +34,9 @@ var browserCmd = &cobra.Command{
 			return
 		}
 		go browser.Run(browser.Config{
-			Port: viper.GetString("browser.port"),
-			Host: viper.GetString("browser.host"),
+			Port:     viper.GetString("browser.port"),
+			Host:     viper.GetString("browser.host"),
+			BlobHost: viper.GetString("browser.blob-host"),
 		}, cache)
 
 		cleanup := func() {

@@ -21,7 +21,8 @@ func NewBlobNode(parent *ThreadNode, blobID string) interfaces.INode {
 		BaseNode: &BaseNode{
 			logger: logrus.WithField("module", types.NodeTypes.Blob).
 				WithField("id", blobID).
-				WithField("path", parent.path),
+				WithField("path", parent.path).
+				WithField("thread", parent.id),
 			path: path.Join(parent.path, "blob"),
 			id:   blobID,
 			ctx:  ctx,

@@ -40,25 +40,29 @@ func foldersHandler(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-func threadsHandler(c *gin.Context) {
-	threadIDs := strings.Split(c.Query("ids"), ",")
-	response := make(map[string]ThreadResponse)
-	for _, threadID := range threadIDs {
-		node := scraper.NewThreadNode(c, "/", threadID)
-		thread, err := repo.GetThread(node)
-		if err != nil {
-			continue
+func threadsHandler(config Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		threadIDs := strings.Split(c.Query("ids"), ",")
+		response := make(map[string]ThreadResponse)
+		for _, threadID := range threadIDs {
+			node := scraper.NewThreadNode(c, "/", threadID)
+			thread, err := repo.GetThread(node)
+			if err != nil {
+				continue
+			}
+
+			thread.InjectBlobHost(config.BlobHost)
+			threadPath, err := path.GetPathToThread(c, thread, repo)
+			if err != nil {
+				continue
+			}
+			response[threadID] = ThreadResponse{
+				QuipThread: thread,
+				Path:       threadPath,
+			}
 		}
-		threadPath, err := path.GetPathToThread(c, thread, repo)
-		if err != nil {
-			continue
-		}
-		response[threadID] = ThreadResponse{
-			QuipThread: thread,
-			Path:       threadPath,
-		}
+		c.JSON(200, response)
 	}
-	c.JSON(200, response)
 }
 
 func commentsHandler(c *gin.Context) {

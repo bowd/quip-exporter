@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Host string
-	Port string
+	Host     string
+	Port     string
+	BlobHost string
 }
 
 var repo interfaces.IRepository
@@ -28,10 +29,12 @@ func Run(config Config, _repo interfaces.IRepository) {
 		MaxAge:        12 * time.Hour,
 	}))
 
+	r.Static("/blob", "./output/data/blobs")
+
 	api := r.Group("/api")
 	api.GET("/root", rootHandler)
 	api.GET("/folders", foldersHandler)
-	api.GET("/threads", threadsHandler)
+	api.GET("/threads", threadsHandler(config))
 	api.GET("/threads/comments", commentsHandler)
 	api.GET("/users", usersHandler)
 

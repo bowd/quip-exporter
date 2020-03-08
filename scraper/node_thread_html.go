@@ -57,15 +57,6 @@ func (node *ThreadHTMLNode) Children() []interfaces.INode {
 			children = append(children, NewBlobNode(node.ThreadNode, match[2]))
 		}
 	}
-	children = append(
-		children,
-		NewArchiveNode(
-			node.path,
-			node.id,
-			node.thread.Filename()+".html",
-			node,
-		),
-	)
 	return children
 }
 
