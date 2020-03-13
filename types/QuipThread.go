@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/kennygrant/sanitize"
 	"strings"
 )
 
@@ -24,7 +23,7 @@ type ThreadInfo struct {
 }
 
 func (qt QuipThread) Filename() string {
-	return sanitize.Path(strings.Replace(qt.Thread.Title, "/", ":", -1))
+	return strings.Replace(qt.Thread.Title, "/", ":", -1)
 }
 
 func (qt QuipThread) IsSpreadsheet() bool {

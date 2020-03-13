@@ -44,7 +44,7 @@ func (node ArchiveNode) Children() []interfaces.INode {
 	return []interfaces.INode{}
 }
 
-func (node ArchiveNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node ArchiveNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	exists, err := repo.NodeExists(node)
 	if err != nil {
 		return err
@@ -53,7 +53,6 @@ func (node ArchiveNode) Process(repo interfaces.IRepository, quip interfaces.IQu
 	if !exists {
 		err := repo.MakeArchiveCopy(node.source, node)
 		if err != nil {
-			node.logger.Error(err)
 			return err
 		}
 	} else {

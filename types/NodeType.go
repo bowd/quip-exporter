@@ -16,6 +16,7 @@ var NodeTypes = struct {
 	Archive           NodeType
 	UserPicture       NodeType
 	ThreadIndex       NodeType
+	FolderIndex       NodeType
 }{
 	CurrentUser:       "current-user",
 	Blob:              "blob",
@@ -30,4 +31,5 @@ var NodeTypes = struct {
 	Archive:           "archive",
 	UserPicture:       "user-picture",
 	ThreadIndex:       "thread-index",
+	FolderIndex:       "folder-index",
 }

@@ -16,8 +16,17 @@ type QuipUser struct {
 	CreatedUsec       *uint64  `json:"created_usec"`
 }
 
-func (qu QuipUser) Folders() []string {
+func (qu QuipUser) Folders(onlyPrivate bool) []string {
 	folders := make([]string, 0, 10)
+
+	if onlyPrivate {
+		folders = tryAppend(
+			folders,
+			qu.PrivateFolderID,
+		)
+		return folders
+	}
+
 	folders = tryAppend(
 		folders,
 		qu.ArchiveFolderID,

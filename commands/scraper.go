@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/scraper"
+	"github.com/bowd/quip-exporter/search"
 	"github.com/bowd/quip-exporter/utils"
 	"github.com/sirupsen/logrus"
 	"os"
@@ -38,7 +39,9 @@ var scrapeCmd = &cobra.Command{
 		)
 		quipClient, err := client.New(
 			viper.GetString("scraper.token"),
+			viper.GetString("scraper.url-provider"),
 			viper.GetString("scraper.company-id"),
+			viper.GetString("scraper.base-url"),
 			viper.GetInt("scraper.tokenConcurrency"),
 			viper.GetInt("scraper.rps"),
 			viper.GetDuration("scraper.batch.wait"),
@@ -49,11 +52,22 @@ var scrapeCmd = &cobra.Command{
 			return
 		}
 
-		scraper := scraper.New(quipClient, repo, viper.GetStringSlice("scraper.blacklist"))
+		index := search.New(viper.GetString("search.path"))
+		scraper := scraper.New(
+			quipClient,
+			repo,
+			index,
+			viper.GetStringSlice("scraper.blacklist"),
+			viper.GetBool("scraper.only-private"),
+		)
 		go scraper.Run(ctx, doneChan)
 
 		cleanup := func() {
 			// Cleanup here
+			if err := index.Close(); err != nil {
+				logger.Debug("This is where error")
+				logger.Error(err)
+			}
 		}
 
 		select {

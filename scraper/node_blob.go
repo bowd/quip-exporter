@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/types"
 	"github.com/sirupsen/logrus"
@@ -50,7 +49,7 @@ func (node *BlobNode) Children() []interfaces.INode {
 	}
 	return []interfaces.INode{
 		NewArchiveNode(
-			path.Join(node.path, "blob", node.thread.Thread.ID),
+			path.Join(node.path, node.thread.Thread.ID),
 			node.id,
 			node.id,
 			node,
@@ -58,19 +57,13 @@ func (node *BlobNode) Children() []interfaces.INode {
 	}
 }
 
-func (node *BlobNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *BlobNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 
 	if exists, err := repo.NodeExists(node); err == nil && !exists {
 		if blob, err := quip.GetBlob(node.thread.Thread.ID, node.id); err != nil {
-			if client.IsUnauthorizedError(err) {
-				node.logger.Warn("skipping unauthorised")
-				return nil
-			} else if err != nil {
-				return err
-			}
 			return err
 		} else {
 			if err := repo.SaveNodeRaw(node, blob); err != nil {
@@ -80,7 +73,6 @@ func (node *BlobNode) Process(repo interfaces.IRepository, quip interfaces.IQuip
 			}
 		}
 	} else if err != nil {
-		node.logger.Errorln(err)
 		return err
 	} else {
 		node.exists = true

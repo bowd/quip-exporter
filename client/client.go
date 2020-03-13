@@ -18,6 +18,7 @@ type QuipClient struct {
 	rps             int
 	batchWait       time.Duration
 	maxItemsInBatch int
+	url             URLProvider
 
 	folder batchWithLock
 	thread batchWithLock
@@ -51,7 +52,7 @@ const (
 	UserBatch   BatchType = "UserBatch"
 )
 
-func New(token, companyID string, tokenConcurrency, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
+func New(token, urlProvider, companyID, baseURL string, tokenConcurrency, rps int, batchWait time.Duration, maxItemsInBatch int) (*QuipClient, error) {
 	qc := &QuipClient{
 		token:            token,
 		companyID:        companyID,
@@ -74,6 +75,12 @@ func New(token, companyID string, tokenConcurrency, rps int, batchWait time.Dura
 			mutex: &sync.Mutex{},
 			batch: nil,
 		},
+	}
+
+	if urlProvider == "default" {
+		qc.url = NewDefaultURLProvider(baseURL)
+	} else if urlProvider == "admin" {
+		qc.url = NewAdminURLProvider(baseURL, companyID)
 	}
 
 	if err := qc.testToken(); err != nil {

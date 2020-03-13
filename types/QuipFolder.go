@@ -1,7 +1,5 @@
 package types
 
-import "github.com/kennygrant/sanitize"
-
 type QuipFolder struct {
 	Folder    *FolderInfo    `json:"folder"`
 	MemberIDs []string       `json:"member_ids"`
@@ -31,9 +29,10 @@ func (fc FolderChild) IsFolder() bool {
 }
 
 func (qf QuipFolder) PathSegment() string {
-	segment := sanitize.Path(qf.Folder.Title)
-	if segment == "" {
-		return qf.Folder.ID
-	}
-	return segment
+	return qf.Folder.Title
+	// segment := sanitize.Path(qf.Folder.Title)
+	// if segment == "" {
+	// 	return qf.Folder.ID
+	// }
+	// return segment
 }

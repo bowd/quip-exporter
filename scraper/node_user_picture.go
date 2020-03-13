@@ -45,7 +45,7 @@ func (node *UserPictureNode) Children() []interfaces.INode {
 	return []interfaces.INode{}
 }
 
-func (node *UserPictureNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *UserPictureNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -55,18 +55,15 @@ func (node *UserPictureNode) Process(repo interfaces.IRepository, quip interface
 	}
 	isExported, err := repo.NodeExists(node)
 	if err != nil {
-		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
 		data, err := quip.ExportUserPhoto(*node.user.ProfilePictureURL)
 		if err != nil {
-			node.logger.Errorln(err)
 			return err
 		}
 		if err := repo.SaveNodeRaw(node, data); err != nil {
-			node.logger.Errorln(err)
 			return err
 		} else {
 			node.exists = true

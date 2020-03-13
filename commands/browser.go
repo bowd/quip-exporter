@@ -4,9 +4,11 @@ import (
 	"github.com/allegro/bigcache"
 	"github.com/bowd/quip-exporter/browser"
 	"github.com/bowd/quip-exporter/repositories"
+	"github.com/bowd/quip-exporter/search"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,11 +35,12 @@ var browserCmd = &cobra.Command{
 			logger.Fatal(err)
 			return
 		}
+		index := search.New(viper.GetString("search.path"))
 		go browser.Run(browser.Config{
 			Port:     viper.GetString("browser.port"),
 			Host:     viper.GetString("browser.host"),
 			BlobHost: viper.GetString("browser.blob-host"),
-		}, cache)
+		}, cache, index.Index)
 
 		cleanup := func() {
 			// Cleanup here

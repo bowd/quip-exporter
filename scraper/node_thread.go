@@ -40,7 +40,7 @@ func (node ThreadNode) Type() types.NodeType {
 }
 
 func (node *ThreadNode) Children() []interfaces.INode {
-	if node.thread == nil {
+	if node.thread == nil || node.thread.Thread.ID == "" {
 		return []interfaces.INode{}
 	}
 	children := make([]interfaces.INode, 0, 0)
@@ -51,7 +51,11 @@ func (node *ThreadNode) Children() []interfaces.INode {
 	)
 
 	if !node.thread.IsChannel() {
-		children = append(children, NewThreadHTMLNode(node))
+		children = append(
+			children,
+			NewThreadHTMLNode(node),
+			NewThreadIndexNode(node),
+		)
 	}
 
 	if node.thread.IsSlides() {
@@ -73,7 +77,7 @@ func (node ThreadNode) ChildrenAfter() []interfaces.INode {
 	return []interfaces.INode{}
 }
 
-func (node *ThreadNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *ThreadNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}

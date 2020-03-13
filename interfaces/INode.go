@@ -6,7 +6,7 @@ type INode interface {
 	Go(func() error)
 	Wait() error
 	Children() []INode
-	Process(repo IRepository, quip IQuipClient) error
+	Process(IRepository, IQuipClient, ISearchIndex) error
 	Type() types.NodeType
 	ID() string
 	Path() string

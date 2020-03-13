@@ -60,19 +60,17 @@ func (node *ThreadHTMLNode) Children() []interfaces.INode {
 	return children
 }
 
-func (node *ThreadHTMLNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *ThreadHTMLNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 	isExported, err := repo.NodeExists(node)
 	if err != nil {
-		node.logger.Errorln(err)
 		return err
 	}
 
 	if !isExported {
 		if err := repo.SaveNodeRaw(node, []byte(node.thread.HTML)); err != nil {
-			node.logger.Errorln(err)
 			return err
 		} else {
 			node.exists = true

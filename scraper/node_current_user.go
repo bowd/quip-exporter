@@ -13,9 +13,10 @@ import (
 type CurrentUserNode struct {
 	*BaseNode
 	currentUser *types.QuipUser
+	onlyPrivate bool
 }
 
-func NewCurrentUserNode(ctx context.Context) interfaces.INode {
+func NewCurrentUserNode(ctx context.Context, onlyPrivate bool) interfaces.INode {
 	wg, ctx := errgroup.WithContext(ctx)
 	return &CurrentUserNode{
 		BaseNode: &BaseNode{
@@ -24,6 +25,7 @@ func NewCurrentUserNode(ctx context.Context) interfaces.INode {
 			wg:     wg,
 			ctx:    ctx,
 		},
+		onlyPrivate: onlyPrivate,
 	}
 }
 
@@ -41,29 +43,25 @@ func (node CurrentUserNode) Path() string {
 
 func (node CurrentUserNode) Children() []interfaces.INode {
 	children := make([]interfaces.INode, 0, 0)
-	for _, folderID := range node.currentUser.Folders() {
+	for _, folderID := range node.currentUser.Folders(node.onlyPrivate) {
 		children = append(children, NewFolderNode(node.ctx, node.path, folderID))
 	}
 
 	return children
 }
 
-func (node *CurrentUserNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *CurrentUserNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	var currentUser *types.QuipUser
 	var err error
 	currentUser, err = repo.GetCurrentUser(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		currentUser, err = quip.GetCurrentUser()
-		if err != nil {
-			node.logger.Errorln(err)
+		if currentUser, err = quip.GetCurrentUser(); err != nil {
 			return err
 		}
 		if err := repo.SaveNodeJSON(node, currentUser); err != nil {
-			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
-		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

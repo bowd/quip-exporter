@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"context"
-	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
@@ -58,7 +57,7 @@ func (node FolderNode) Children() []interfaces.INode {
 	return children
 }
 
-func (node *FolderNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *FolderNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
@@ -67,20 +66,13 @@ func (node *FolderNode) Process(repo interfaces.IRepository, quip interfaces.IQu
 
 	folder, err = repo.GetFolder(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		folder, err = quip.GetFolder(node.id)
-		if err != nil && client.IsUnauthorizedError(err) {
-			node.logger.Warn("skipping unauthorised")
-			return nil
-		} else if err != nil {
-			node.logger.Errorln(err)
+		if folder, err = quip.GetFolder(node.id); err != nil {
 			return err
 		}
 		if err := repo.SaveNodeJSON(node, folder); err != nil {
-			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
-		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repository")

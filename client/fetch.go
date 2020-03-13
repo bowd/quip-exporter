@@ -66,28 +66,28 @@ func (qc *QuipClient) getFolders(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(FoldersMask, qc.companyID, ids), token)
+	return qc.getMap(qc.url.Folders(ids), token)
 }
 
 func (qc *QuipClient) getThreads(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(ThreadsMask, qc.companyID, ids), token)
+	return qc.getMap(qc.url.Threads(ids), token)
 }
 
 func (qc *QuipClient) getUsers(ids []string) (map[string][]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getMap(batchURL(UsersMask, qc.companyID, ids), token)
+	return qc.getMap(qc.url.Users(ids), token)
 }
 
 func (qc *QuipClient) getCurrentUser() ([]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getBytes(currentUserURL(), token)
+	return qc.getBytes(qc.url.CurrentUser(), token)
 }
 
 func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, error) {
@@ -97,7 +97,7 @@ func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, 
 	allComments := make([]*types.QuipMessage, 0, 10)
 	var cursor *uint64
 	for {
-		data, err := qc.getBytes(threadCommentsURL(threadID, cursor, qc.companyID), token)
+		data, err := qc.getBytes(qc.url.ThreadComments(threadID, cursor), token)
 		if err != nil {
 			return nil, err
 		}
@@ -120,14 +120,14 @@ func (qc *QuipClient) getThreadComments(threadID string) ([]*types.QuipMessage, 
 func (qc *QuipClient) exportThread(threadID string, exportType string) ([]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
-	return qc.getBytes(exportThreadURL(threadID, exportType, qc.companyID), token)
+	return qc.getBytes(qc.url.ExportThread(threadID, exportType), token)
 }
 
 func (qc *QuipClient) getBlob(threadID, blobID string) ([]byte, error) {
 	token := qc.checkoutToken()
 	defer qc.checkinToken(token)
 
-	return qc.getBytes(blobURL(threadID, blobID, qc.companyID), token)
+	return qc.getBytes(qc.url.Blob(threadID, blobID), token)
 }
 
 func (qc *QuipClient) getMap(url string, token Token) (map[string][]byte, error) {

@@ -57,26 +57,23 @@ func (node *ThreadDocumentNode) Children() []interfaces.INode {
 	}
 }
 
-func (node *ThreadDocumentNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *ThreadDocumentNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 	isExported, err := repo.NodeExists(node)
 	if err != nil {
-		node.logger.Errorln(err)
 		return err
 	}
-
 	if !isExported {
-		data, err := quip.ExportThreadDocument(node.id)
-		if err != nil {
-			node.logger.Errorln(err)
-			return err
-		}
-		if err := repo.SaveNodeRaw(node, data); err != nil {
+		if data, err := quip.ExportThreadDocument(node.id); err != nil {
 			return err
 		} else {
-			node.exists = true
+			if err := repo.SaveNodeRaw(node, data); err != nil {
+				return err
+			} else {
+				node.exists = true
+			}
 		}
 	} else {
 		node.exists = true

@@ -1,7 +1,6 @@
 package scraper
 
 import (
-	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/repositories"
 	"github.com/bowd/quip-exporter/types"
@@ -56,30 +55,20 @@ func (node *ThreadCommentsNode) Children() []interfaces.INode {
 	return children
 }
 
-func (node *ThreadCommentsNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient) error {
+func (node *ThreadCommentsNode) Process(repo interfaces.IRepository, quip interfaces.IQuipClient, search interfaces.ISearchIndex) error {
 	if node.ctx.Err() != nil {
 		return nil
 	}
 
 	comments, err := repo.GetThreadComments(node)
 	if err != nil && repositories.IsNotFoundError(err) {
-		comments, err = quip.GetThreadComments(node.id)
-		if err != nil && client.IsUnauthorizedError(err) {
-			node.logger.Warn("skipping unauthorised")
-			return nil
-		} else if err != nil && client.IsDeletedError(err) {
-			node.logger.Warn("skipping deleted")
-			return nil
-		} else if err != nil {
-			node.logger.Errorln(err)
+		if comments, err = quip.GetThreadComments(node.id); err != nil {
 			return err
 		}
 		if err := repo.SaveNodeJSON(node, comments); err != nil {
-			node.logger.Errorln(err)
 			return err
 		}
 	} else if err != nil {
-		node.logger.Errorln(err)
 		return err
 	} else {
 		node.logger.Debugf("loaded from repo")

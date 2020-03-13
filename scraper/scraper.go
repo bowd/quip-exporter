@@ -2,29 +2,34 @@ package scraper
 
 import (
 	"context"
+	"github.com/bowd/quip-exporter/client"
 	"github.com/bowd/quip-exporter/interfaces"
 	"github.com/bowd/quip-exporter/types"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"strings"
 	"sync"
 )
 
 type Scraper struct {
-	client        interfaces.IQuipClient
 	blacklist     map[types.NodeType]bool
 	done          chan bool
 	wg            *errgroup.Group
 	logger        *logrus.Entry
+	client        interfaces.IQuipClient
 	repo          interfaces.IRepository
+	search        interfaces.ISearchIndex
 	progressMutex *sync.Mutex
 	seenMap       *sync.Map
+	onlyPrivate   bool
 	progress      struct {
 		queued map[string]int
 		done   map[string]int
 	}
 }
 
-func New(client interfaces.IQuipClient, repo interfaces.IRepository, _blacklist []string) *Scraper {
+func New(client interfaces.IQuipClient, repo interfaces.IRepository, search interfaces.ISearchIndex, _blacklist []string, onlyPrivate bool) *Scraper {
 	blacklist := make(map[types.NodeType]bool)
 	for _, node := range _blacklist {
 		blacklist[node] = true
@@ -32,10 +37,12 @@ func New(client interfaces.IQuipClient, repo interfaces.IRepository, _blacklist 
 	return &Scraper{
 		logger:        logrus.WithField("module", "quip-scraper"),
 		client:        client,
+		search:        search,
 		repo:          repo,
 		progressMutex: &sync.Mutex{},
 		seenMap:       &sync.Map{},
 		blacklist:     blacklist,
+		onlyPrivate:   onlyPrivate,
 		progress: struct {
 			queued map[string]int
 			done   map[string]int
@@ -48,7 +55,7 @@ func New(client interfaces.IQuipClient, repo interfaces.IRepository, _blacklist 
 
 func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 	go scraper.printProgress()
-	root := NewCurrentUserNode(ctx)
+	root := NewCurrentUserNode(ctx, scraper.onlyPrivate)
 	err := scraper.scrape(ctx, root)
 	if err != nil {
 		scraper.logger.Errorln(err)
@@ -57,16 +64,35 @@ func (scraper *Scraper) Run(ctx context.Context, done chan bool) {
 }
 
 func (scraper *Scraper) scrape(ctx context.Context, node interfaces.INode) error {
-	err := node.Process(scraper.repo, scraper.client)
+	defer scraper.incrementDone(node)
+	nodeLogger := scraper.logger.WithField("type", node.Type()).WithField("id", node.ID())
+	err := node.Process(scraper.repo, scraper.client, scraper.search)
 	if err != nil {
-		return err
+		if client.IsUnauthorizedError(err) {
+			nodeLogger.Warn("skipping unauthorized")
+			return nil
+		} else if client.IsDeletedError(err) {
+			nodeLogger.Warn("skipping deleted")
+			return nil
+		} else if strings.Contains(err.Error(), "key too large") {
+			nodeLogger.Warn("skipping index (key too large)")
+			return nil
+		} else {
+			nodeLogger.Error(err)
+			spew.Dump(node)
+			return err
+		}
 	}
+
 	for _, child := range node.Children() {
 		scraper.queue(ctx, node, child)
 	}
-
 	err = node.Wait()
-	go scraper.incrementDone(node)
+	if err != nil {
+		nodeLogger.Error(err)
+		spew.Dump(node)
+		return err
+	}
 	return err
 }
 
