@@ -22,10 +22,9 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/gin-contrib/cors v1.3.0
-	github.com/gin-gonic/gin v1.5.0
+	github.com/gin-gonic/gin v1.7.0
 	github.com/imdario/mergo v0.3.8
 	github.com/jmhodges/levigo v1.0.0 // indirect
-	github.com/kennygrant/sanitize v1.2.4
 	github.com/kwix/logrus-module-formatter v0.0.0-20190702125859-070a70371a97
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/remyoudompheng/bigfft v0.0.0-20190728182440-6a916e37a237 // indirect
